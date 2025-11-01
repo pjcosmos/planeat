@@ -638,3 +638,60 @@ textarea{ resize: vertical; }
 /* 날짜 숫자와 칩이 가려지지 않도록 위에 올려줌 */
 .current-month .date-number,
 .current-month .day-list { position: relative; z-index: 2; }
+
+.week-actions .btn {
+  background: none !important;
+  border: none !important;
+  padding: 2px 4px !important;
+  color: #555 !important;
+  font-size: 13px !important;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.week-actions .btn:hover {
+  color: #111 !important;
+}
+.week-actions {
+  justify-content: flex-end !important;
+}
+
+/* ===== Month view: tighter spacing ===== */
+#calendarGrid.is-month {
+  gap: 8px;                    /* 그리드 간격 축소 (기존 10~16px였다면 효과 큼) */
+}
+
+#calendarGrid.is-month .day-name {
+  padding: 20px 0;              /* 요일 헤더 높이 ↓ */
+  font-size: 12px;
+  line-height: 1.1;
+  margin: 0;                   /* 여백 누수 차단 */
+}
+
+#calendarGrid.is-month .current-month {
+  min-height: 130px;            /* 날짜 칸 기본 높이 ↓ (필요시 76~96px 사이로 조절) */
+  padding: 6px 6px 8px;        /* 내부 패딩 ↓ */
+  border-radius: 12px;         /* 모서리 살짝만 */
+}
+
+#calendarGrid.is-month .date-number {
+  font-size: 12px;             /* 숫자 크기 ↓ */
+  line-height: 1;
+  margin: 0 0 4px 0;           /* 숫자와 칩 사이 간격만 소폭 */
+}
+
+#calendarGrid.is-month .day-list {
+  margin-top: 2px;             /* 칩 영역과 번호 사이 간격 ↓ */
+}
+
+#calendarGrid.is-month img.day-bg-underlay,
+#calendarGrid.is-month img.day-bg-img {
+  max-height: 56px;            /* 배경 이미지가 칸을 키우지 않도록 상한 */
+}
+
+/* 월 뷰 칸 사이 높이 줄이기 */
+#calendarGrid.is-month {
+  grid-auto-rows: minmax(20px, auto) !important; /* 기존 120~150px 정도로 잡혀있던 거 ↓ */
+}
+
+
+
