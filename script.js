@@ -1951,3 +1951,265 @@ renderCalendar = function(y,m){
     img.addEventListener('load', ()=> setTimeout(autoScaleDayLists,0), {once:true});
   });
 };
+
+/* =========================
+   Bucket List (장기 목표 보관함)
+   - localStorage key: 'planeat-bucket'
+   - 기한 없음/장기 목표를 저장
+   - 월간 계획(quickTodoBar)으로 보내기, 완료 체크, 편집/삭제
+   - 드래그 정렬
+   ========================= */
+
+/* 저장/불러오기 */
+function bucketKey(){ return 'planeat-bucket'; }
+function bucketLoad(){
+  try { return JSON.parse(localStorage.getItem(bucketKey())) || []; }
+  catch { return []; }
+}
+function bucketSave(list){
+  const safe = Array.isArray(list) ? list.map(x=>({
+    id: x.id || ('b'+Math.random().toString(36).slice(2)+Date.now().toString(36)),
+    text: String(x.text||''),
+    done: !!x.done,
+    star: !!x.star,
+    tag: String(x.tag||'')   // 카테고리/태그(선택)
+  })) : [];
+  localStorage.setItem(bucketKey(), JSON.stringify(safe));
+}
+
+/* 월간 계획으로 보내기 (quickTodoBar 연동) */
+function bucketSendToMonth(item){
+  if (!item || !window.loadMonthTodos || !window.saveMonthTodos) return;
+  const list = window.loadMonthTodos();
+  list.push({ id: window.genUid ? window.genUid() : ('m'+Date.now()), text: item.text, date: '' });
+  window.saveMonthTodos(list);
+  // 양방향 미러링은 월간 계획 쪽 로직이 처리함
+  window.renderQuickTodoBar && window.renderQuickTodoBar();
+  // 안내 토스트(가벼운 피드백)
+  bucketToast('월간 계획으로 보냈어요.');
+}
+
+/* 스타일 1회 주입 */
+(function bucketInjectStyle(){
+  if (document.getElementById('bucket-style')) return;
+  const css = `
+  #bucketPanel{ margin-top:10px; }
+  .bucket-wrap{
+    border:1px solid var(--line,#e9e2d9); background:#fff; border-radius:10px; padding:10px 12px;
+  }
+  .bucket-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+  .bucket-title{ font-weight:800; }
+  .bucket-add{ display:flex; gap:8px; }
+  .bucket-input{ flex:1; min-width:0; border:1px solid #eee; border-radius:8px; padding:8px 10px; }
+  .bucket-tag{ width:100px; border:1px solid #eee; border-radius:8px; padding:8px 10px; }
+  .bucket-btn{ border:1px solid var(--line,#e9e2d9); background:#fafafa; border-radius:8px; padding:8px 10px; cursor:pointer; }
+  .bucket-list{ display:flex; flex-direction:column; gap:8px; }
+  .bucket-item{
+    display:flex; align-items:center; gap:10px; padding:8px 10px; border:1px solid var(--line,#eee);
+    border-radius:10px; background:#fff; user-select:none;
+  }
+  .bucket-item.dragging{ opacity:.6; }
+  .bucket-text{ flex:1; min-width:0; }
+  .bucket-text.done{ text-decoration:line-through; color:#9aa0a6; }
+  .bucket-chip{ font-size:12px; padding:2px 6px; border:1px solid #e5e7eb; border-radius:999px; background:#f8fafc; white-space:nowrap; }
+  .bucket-actions{ display:flex; gap:6px; }
+  .bucket-icon{ border:1px solid #e5e5e5; background:#fff; border-radius:8px; padding:6px 8px; cursor:pointer; }
+  .bucket-star.on{ color:#eab308; border-color:#f1e3a1; background:#fffceb; }
+  .bucket-empty{ color:#888; padding:4px 0 2px; }
+  .bucket-toast{
+    position:fixed; left:50%; transform:translateX(-50%);
+    bottom:20px; padding:10px 14px; border-radius:999px; background:#111; color:#fff; font-size:13px;
+    box-shadow:0 10px 24px rgba(0,0,0,.15); z-index:99999; opacity:0; transition:opacity .2s ease;
+  }
+  .bucket-toast.show{ opacity:1; }
+  `;
+  const st = document.createElement('style');
+  st.id = 'bucket-style'; st.textContent = css;
+  document.head.appendChild(st);
+})();
+
+/* 토스트 */
+let bucketToastTimer=null;
+function bucketToast(msg){
+  let el = document.getElementById('bucket-toast');
+  if(!el){ el = document.createElement('div'); el.id='bucket-toast'; el.className='bucket-toast'; document.body.appendChild(el); }
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(bucketToastTimer);
+  bucketToastTimer = setTimeout(()=> el.classList.remove('show'), 1300);
+}
+
+/* 렌더 */
+function renderBucketPanel(){
+  // mount
+  let mount = document.getElementById('bucketPanel');
+  if(!mount){
+    // calendar-controls 아래로 자동 삽입
+    const controls = document.querySelector('.calendar-controls');
+    mount = document.createElement('div');
+    mount.id = 'bucketPanel';
+    if (controls) controls.insertAdjacentElement('afterend', mount);
+    else document.body.appendChild(mount);
+  }
+  mount.innerHTML = '';
+
+  const wrap = document.createElement('div');
+  wrap.className = 'bucket-wrap';
+
+  // 헤더 + 입력
+  const head = document.createElement('div'); head.className='bucket-head';
+  const title = document.createElement('div'); title.className='bucket-title'; title.textContent='버킷리스트';
+
+  const add = document.createElement('div'); add.className='bucket-add';
+  const input = document.createElement('input'); input.className='bucket-input'; input.placeholder='장기 목표를 입력하세요';
+  const tag   = document.createElement('input'); tag.className='bucket-tag'; tag.placeholder='태그(선택)';
+  const btn   = document.createElement('button'); btn.type='button'; btn.className='bucket-btn'; btn.textContent='추가';
+
+  function doAdd(){
+    const text = (input.value||'').trim();
+    if(!text) return;
+    const list = bucketLoad();
+    list.push({ id:'b'+Math.random().toString(36).slice(2)+Date.now().toString(36), text, tag: (tag.value||'').trim(), done:false, star:false });
+    bucketSave(list);
+    input.value=''; tag.value='';
+    renderBucketPanel();
+  }
+  btn.addEventListener('click', doAdd);
+  input.addEventListener('keydown', e=>{ if(e.key==='Enter') doAdd(); });
+
+  add.append(input, tag, btn);
+  head.append(title, add);
+
+  // 목록
+  const listEl = document.createElement('div'); listEl.className='bucket-list';
+  let list = bucketLoad();
+
+  // 별표 우선 → 미완료 우선 → 텍스트
+  list.sort((a,b)=>{
+    if (!!b.star !== !!a.star) return b.star ? 1 : -1;
+    if (!!a.done !== !!b.done) return a.done ? 1 : -1;
+    return String(a.text||'').localeCompare(String(b.text||''));
+  });
+
+  if(!list.length){
+    const empty = document.createElement('div'); empty.className='bucket-empty'; empty.textContent='아직 항목이 없어요. 위 입력창에 추가해보세요.';
+    listEl.appendChild(empty);
+  }else{
+    // 드래그 정렬 지원
+    let dragIdx = -1;
+    function commitOrder(){
+      const items = [...listEl.querySelectorAll('.bucket-item')];
+      const newList = [];
+      items.forEach(it=>{
+        const id = it.dataset.id;
+        const found = list.find(x=>x.id===id);
+        if(found) newList.push(found);
+      });
+      bucketSave(newList);
+      list = newList;
+    }
+
+    list.forEach((item, idx)=>{
+      const row = document.createElement('div');
+      row.className = 'bucket-item';
+      row.draggable = true;
+      row.dataset.id = item.id;
+
+      // 드래그
+      row.addEventListener('dragstart', ()=>{ dragIdx = idx; row.classList.add('dragging'); });
+      row.addEventListener('dragend', ()=>{ dragIdx = -1; row.classList.remove('dragging'); commitOrder(); });
+      row.addEventListener('dragover', (e)=>{
+        e.preventDefault();
+        const after = e.clientY < row.getBoundingClientRect().top + row.offsetHeight/2;
+        const dragging = listEl.querySelector('.bucket-item.dragging');
+        if(!dragging || dragging===row) return;
+        if(after) listEl.insertBefore(dragging, row);
+        else listEl.insertBefore(dragging, row.nextSibling);
+      });
+
+      // 체크
+      const cb = document.createElement('input'); cb.type='checkbox'; cb.checked=!!item.done;
+      cb.addEventListener('change', ()=>{
+        item.done = cb.checked;
+        bucketSave(list); renderBucketPanel();
+      });
+
+      // 텍스트(인라인 편집)
+      const span = document.createElement('span'); span.className='bucket-text' + (item.done?' done':''); span.textContent=item.text;
+      span.title = item.text;
+      span.addEventListener('dblclick', ()=>{
+        const ip = document.createElement('input'); ip.className='bucket-input'; ip.value=item.text;
+        ip.addEventListener('keydown', e=>{
+          if(e.key==='Enter'){ item.text=ip.value.trim(); bucketSave(list); renderBucketPanel(); }
+          if(e.key==='Escape'){ renderBucketPanel(); }
+        });
+        ip.addEventListener('blur', ()=>{ item.text=ip.value.trim(); bucketSave(list); renderBucketPanel(); });
+        row.replaceChild(ip, span); ip.focus(); ip.select();
+      });
+
+      // 태그
+      const chip = document.createElement('span');
+      chip.className = 'bucket-chip';
+      chip.textContent = item.tag ? ('#'+item.tag) : '무태그';
+      chip.addEventListener('click', ()=>{
+        const ip = document.createElement('input'); ip.className='bucket-tag'; ip.value=item.tag||'';
+        ip.addEventListener('keydown', e=>{
+          if(e.key==='Enter'){ item.tag = ip.value.trim(); bucketSave(list); renderBucketPanel(); }
+          if(e.key==='Escape'){ renderBucketPanel(); }
+        });
+        ip.addEventListener('blur', ()=>{ item.tag = ip.value.trim(); bucketSave(list); renderBucketPanel(); });
+        row.replaceChild(ip, chip); ip.focus(); ip.select();
+      });
+
+      // 액션들
+      const acts = document.createElement('div'); acts.className='bucket-actions';
+
+      const star = document.createElement('button'); star.type='button'; star.className='bucket-icon bucket-star' + (item.star?' on':'' ); star.textContent='★';
+      star.title='중요 표시';
+      star.addEventListener('click', ()=>{ item.star=!item.star; bucketSave(list); renderBucketPanel(); });
+
+      const send = document.createElement('button'); send.type='button'; send.className='bucket-icon'; send.textContent='→월';
+      send.title='월간 계획으로 보내기';
+      send.addEventListener('click', ()=> bucketSendToMonth(item));
+
+      const del = document.createElement('button'); del.type='button'; del.className='bucket-icon'; del.textContent='🗑︎';
+      del.title='삭제';
+      del.addEventListener('click', ()=>{
+        if(!confirm('이 버킷 항목을 삭제할까요?')) return;
+        const rest = list.filter(x=>x.id!==item.id);
+        bucketSave(rest); renderBucketPanel();
+      });
+
+      acts.append(star, send, del);
+
+      row.append(cb, span, chip, acts);
+      listEl.appendChild(row);
+    });
+  }
+
+  wrap.append(head, listEl);
+  mount.appendChild(wrap);
+}
+
+/* 뷰 전환과의 연동:
+   - month / week 에서 보여주고
+   - day 뷰에서는 숨겨 UX 집중
+*/
+(function bucketPatchRender(){
+  const _rc = window.renderCalendar;
+  window.renderCalendar = function patched(){
+    _rc && _rc.apply(this, arguments);
+
+    // mount & render
+    renderBucketPanel();
+
+    // 뷰별 표시/숨김
+    const panel = document.getElementById('bucketPanel');
+    if(!panel) return;
+    if (window.currentView === 'day') {
+      panel.style.display = 'none';
+    } else {
+      panel.style.display = 'block';
+    }
+  };
+})();
