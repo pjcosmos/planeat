@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PLANEAT • 회원가입</title>
+  <link rel="stylesheet" href="auth.css" />
+</head>
+<body>
+  <main class="auth-shell">
+    <section class="auth-card">
+      <h1 class="brand-title">회원가입</h1>
+      <form id="signupForm" class="auth-form">
+        <div class="field">
+          <label>아이디</label>
+          <input id="suId" required />
+        </div>
+
+        <div class="field">
+          <label>비밀번호</label>
+          <input id="suPw" type="password" required />
+        </div>
+
+        <button class="btn btn-primary">가입하기</button>
+        <a class="btn btn-ghost" href="login.html">로그인</a>
+      </form>
+    </section>
+  </main>
+
+  <script src="auth.js"></script>
+  <script>
+    document.getElementById("signupForm").addEventListener("submit",(e)=>{
+      e.preventDefault();
+      signup(suId.value.trim(), suPw.value.trim());
+    });
+  </script>
+</body>
+</html>
