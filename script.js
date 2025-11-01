@@ -24,6 +24,9 @@ const $  = (s,p=document)=>p.querySelector(s);
 const $$ = (s,p=document)=>Array.from(p.querySelectorAll(s));
 const on = (el,ev,fn)=>el && el.addEventListener(ev,fn);
 
+const SHOW_WEEK_PHOTO = false;
+
+
 /* 날짜 키(일 단위) */
 function keyOf(d){
   const dd = new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -1004,44 +1007,167 @@ function getWeekByDate(base){
 }
 
 // 추가: "월 뷰와 동일한 DOM"으로 주만 7칸 렌더 (CSS 손대지 않음)
+// === REPLACE: renderWeekGrid(days) → 목록형 주간 뷰 ===
 function renderWeekGrid(days){
+  // 컨테이너 초기화 및 표시 모드 전환
   calendarGrid.innerHTML = '';
+  calendarGrid.style.display = 'block';      // 목록형: block
+  calendarGrid.style.gridTemplateColumns = ''; // 과거 grid 설정 제거
+  weekOptions && (weekOptions.style.display = 'flex');
 
-  ['일','월','화','수','목','금','토'].forEach(n=>{
-    const el = document.createElement('div'); el.className='day-name'; el.textContent=n;
-    calendarGrid.appendChild(el);
-  });
+  // 스타일 1회 주입
+  if(!document.getElementById('week-list-style')){
+    const css = `
+      .week-list{ display:flex; flex-direction:column; gap:10px; }
+      .week-day-card{
+        border:1px solid var(--line,#e9e2d9);
+        border-radius:12px; background:#fff; padding:10px 12px;
+      }
+      .week-day-head{
+        display:flex; align-items:center; justify-content:space-between;
+        margin-bottom:8px;
+      }
+      .week-day-title{ font-weight:800; }
+      .week-day-meta{ font-size:12px; color:#6b7280; display:flex; gap:8px; align-items:center; }
+      .week-day-photo{
+        width:100%; max-height:180px; border-radius:10px; object-fit:cover; display:block; margin:6px 0 8px 0;
+      }
+      .week-names{ margin-top:4px; }
+      .week-empty{ color:#9aa0a6; font-size:13px; }
+      .week-todo-list{ display:flex; flex-direction:column; gap:4px; margin-top:6px; }
+      .week-todo-item{ display:flex; align-items:center; gap:6px; font-size:14px; }
+      .week-todo-time{ font-size:12px; padding:2px 6px; border:1px solid #e5e7eb; border-radius:999px; background:#f8fafc; }
+      .week-actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:8px; }
+      .btn{ border:1px solid var(--line,#e9e2d9); background:#fff; border-radius:10px; padding:6px 10px; cursor:pointer; }
+      .btn.primary{ background:#111; color:#fff; border-color:#111; }
+      .today-badge{ font-size:11px; padding:2px 6px; border-radius:999px; border:1px solid #d7e7ff; background:#eef6ff; color:#1e3a8a; }
+    `;
+    const st = document.createElement('style');
+    st.id = 'week-list-style';
+    st.textContent = css;
+    document.head.appendChild(st);
+  }
 
-  // ✅ 현재 달만 남기고, 7칸 정렬 유지 위해 패딩
-  const m = activeDate.getMonth();
-  const visible = days.filter(d => d.getMonth() === m);
-  const padded  = [...visible];
-  while (padded.length < 7) padded.push(null);   // 빈 칸으로 채우기
+  // 요일명
+  const weekday = ['일','월','화','수','목','금','토'];
 
-  padded.forEach(d=>{
-    if (!d){
-      const empty = document.createElement('div');  // 빈 칸
-      calendarGrid.appendChild(empty);
-      return;
+  // 목록 컨테이너
+  const list = document.createElement('div');
+  list.className = 'week-list';
+
+  // 현재 달만 필터(주차 생성에서 이미 필터됐어도 안전망)
+  const monthIdx = activeDate.getMonth();
+  const onlyThisMonth = days.filter(d => d.getMonth() === monthIdx);
+
+  onlyThisMonth.forEach(d=>{
+    const card = document.createElement('div');
+    card.className = 'week-day-card';
+
+    // 헤더
+    const head = document.createElement('div');
+    head.className = 'week-day-head';
+
+    const y = d.getFullYear(), m = d.getMonth()+1, day = d.getDate();
+    const title = document.createElement('div');
+    title.className = 'week-day-title';
+    title.textContent = `${String(m).padStart(2,'0')}.${String(day).padStart(2,'0')} (${weekday[d.getDay()]})`;
+
+    const meta = document.createElement('div');
+    meta.className = 'week-day-meta';
+    if (d.toDateString() === new Date().toDateString()){
+      const badge = document.createElement('span');
+      badge.className = 'today-badge';
+      badge.textContent = '오늘';
+      meta.appendChild(badge);
     }
-    const cell = document.createElement('div');
-    cell.className = 'current-month';
-    const num = document.createElement('div'); num.className = 'date-number'; num.textContent = String(d.getDate());
-    cell.appendChild(num);
 
-    if (d.toDateString() === new Date().toDateString()) cell.classList.add('today');
+    head.append(title, meta);
+    card.appendChild(head);
 
+    // 데이터 로드
     const ev = load(d);
-    const photoMemo = [...(ev.memos||[])].reverse().find(m=>m.photo);
-    if (photoMemo?.photo) setDayPhoto(cell, photoMemo.photo);
 
+    // 대표 사진(있으면)
+    if (SHOW_WEEK_PHOTO) {
+         const photoMemo = [...(ev.memos || [])].reverse().find(m => m.photo);
+         if (photoMemo?.photo){
+           const img = document.createElement('img');
+           img.className = 'week-day-photo';
+           img.src = photoMemo.photo;
+           img.alt = '대표 사진';
+          card.appendChild(img);
+        }
+       }
+      
+
+    // 맛집 칩(무카테고리 1줄 + 카테고리 1줄) 재활용
     const namesEl = buildRestaurantList(d);
-    if (namesEl) cell.appendChild(namesEl);
+    if (namesEl){
+      const wrap = document.createElement('div');
+      wrap.className = 'week-names';
+      wrap.appendChild(namesEl);
+      card.appendChild(wrap);
+    } else {
+      const empty = document.createElement('div');
+      empty.className = 'week-empty';
+      empty.textContent = '등록된 메모가 없어요.';
+      card.appendChild(empty);
+    }
 
-    on(cell,'click',()=>openModal(d));
-    calendarGrid.appendChild(cell);
+    // 당일 할 일 간단 표시 (시간순)
+    const todos = (ev.todos || []).slice();
+    const parseTime = (t)=>{
+      if(!t) return null;
+      const [hh,mm] = String(t).split(':').map(x=>parseInt(x,10));
+      return (isNaN(hh)||isNaN(mm)) ? null : (hh*60+mm);
+    };
+    todos.sort((a,b)=>{
+      const am = parseTime(a.time), bm = parseTime(b.time);
+      if (am===null && bm!==null) return 1;
+      if (am!==null && bm===null) return -1;
+      if (am!==bm) return (am||0)-(bm||0);
+      // 미완료 우선
+      if (!!a.completed !== !!b.completed) return a.completed?1:-1;
+      return String(a.text||'').localeCompare(String(b.text||''));
+    });
+
+    if (todos.length){
+      const tlist = document.createElement('div');
+      tlist.className = 'week-todo-list';
+      todos.forEach(t=>{
+        const row = document.createElement('div');
+        row.className = 'week-todo-item';
+        if (t.time){
+          const tb = document.createElement('span');
+          tb.className = 'week-todo-time';
+          tb.textContent = t.time;
+          row.appendChild(tb);
+        }
+        const label = document.createElement('span');
+        label.textContent = (t.text||'') + (t.completed?' (완료)':'');
+        row.appendChild(label);
+        tlist.appendChild(row);
+      });
+      card.appendChild(tlist);
+    }
+
+    // 액션
+    const acts = document.createElement('div');
+    acts.className = 'week-actions';
+    const openBtn = document.createElement('button');
+    openBtn.type = 'button';
+    openBtn.className = 'btn';
+    openBtn.textContent = '이 날 상세';
+    openBtn.addEventListener('click', ()=> openModal(d));
+    acts.appendChild(openBtn);
+    card.appendChild(acts);
+
+    list.appendChild(card);
   });
+
+  calendarGrid.appendChild(list);
 }
+
 
 
 // script.js — 로그인/회원가입/재설정 UI 제어 + 세션 가드 + 토스트
@@ -1404,15 +1530,21 @@ function renderCalendar(){
   const firstDow=new Date(y,m,1).getDay();
   const daysIn =new Date(y,m+1,0).getDate();
 
-  if (currentView!=='day'){
-    ['일','월','화','수','목','금','토'].forEach(n=>{
-      const d=document.createElement('div'); d.className='day-name'; d.textContent=n; calendarGrid.appendChild(d);
-    });
-    for(let i=0;i<firstDow;i++) calendarGrid.appendChild(document.createElement('div'));
-  }
+  if (currentView==='month'){
+    const names = ['일','월','화','수','목','금','토'];
+       names.forEach(n=>{
+         const d=document.createElement('div');
+        d.className='day-name';
+        d.textContent=n;
+        calendarGrid.appendChild(d);
+     });
+     for(let i=0;i<firstDow;i++){
+       calendarGrid.appendChild(document.createElement('div')); // 앞 패딩
+      }
+    }
 
-  if(currentView==='month' || currentView==='week'){
-    for(let day=1; day<=daysIn; day++){
+    if(currentView==='month'){
+      for(let day=1; day<=daysIn; day++){
       const cell=document.createElement('div'); cell.className='current-month';
       const num=document.createElement('div'); num.className='date-number'; num.textContent=String(day);
       cell.appendChild(num);
@@ -1454,6 +1586,12 @@ else if (currentView === 'week') {
     calendarGrid.style.display='none';
     weekOptions.style.display='none';
   }
+
+  // renderCalendar() 마지막에 추가(또는 기존 위치에 유지)
+calendarGrid.classList.toggle('is-month', currentView === 'month');
+calendarGrid.classList.toggle('is-week',  currentView === 'week');
+calendarGrid.classList.toggle('is-day',   currentView === 'day');
+
 }
 
 /* ===== 네비/뷰 전환 ===== */
