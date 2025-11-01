@@ -184,6 +184,107 @@ function renderSearchList(q = '') {
   });
 }
 
+  /* ===== Mini Month 창 ===== */
+  let miniMonthEl = null;
+  let miniMonthBase = null; // 현재 표시 중인 달(그 달 1일)
+  
+  /** 창 열기: 밖을 눌러도 닫히지 않음 */
+  function openMiniMonth(baseDate){
+    if (!miniMonthEl) buildMiniMonth();
+    miniMonthBase = new Date(baseDate.getFullYear(), baseDate.getMonth(), 1);
+    renderMiniMonthGrid();
+    miniMonthEl.removeAttribute('aria-hidden');
+  }
+  
+  /** 창 닫기: 오직 내부 [닫기]로만 */
+  function closeMiniMonth(){
+    if (!miniMonthEl) return;
+    miniMonthEl.setAttribute('aria-hidden','true');
+  }
+  
+  /** DOM 1회 생성 */
+  function buildMiniMonth(){
+    miniMonthEl = document.createElement('div');
+    miniMonthEl.id = 'miniMonth';
+    miniMonthEl.setAttribute('aria-hidden','true');
+    miniMonthEl.innerHTML = `
+      <div class="mm-window" role="dialog" aria-label="월 선택">
+        <div class="mm-head">
+          <button type="button" class="mm-prev" aria-label="이전 달">◀</button>
+          <div class="mm-title"></div>
+          <button type="button" class="mm-next" aria-label="다음 달">▶</button>
+          <button type="button" class="mm-close">닫기</button>
+        </div>
+        <div class="mm-body">
+          <div class="mm-grid"></div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(miniMonthEl);
+  
+    // 이벤트: 오직 내부 버튼만 사용 (바깥 클릭 닫기 없음)
+    miniMonthEl.querySelector('.mm-prev').addEventListener('click', ()=>{
+      miniMonthBase.setMonth(miniMonthBase.getMonth()-1);
+      renderMiniMonthGrid();
+    });
+    miniMonthEl.querySelector('.mm-next').addEventListener('click', ()=>{
+      miniMonthBase.setMonth(miniMonthBase.getMonth()+1);
+      renderMiniMonthGrid();
+    });
+    miniMonthEl.querySelector('.mm-close').addEventListener('click', closeMiniMonth);
+  }
+  
+  /** 숫자 그리드 렌더 (선택 시 Day 갱신, 창은 유지) */
+  function renderMiniMonthGrid(){
+    if (!miniMonthEl) return;
+    const title = miniMonthEl.querySelector('.mm-title');
+    const grid  = miniMonthEl.querySelector('.mm-grid');
+    const y = miniMonthBase.getFullYear();
+    const m = miniMonthBase.getMonth();
+  
+    title.textContent = `${y}년 ${m+1}월`;
+  
+    // 요일 헤더 + 그 달 날짜만
+    const names = ['일','월','화','수','목','금','토'];
+    grid.innerHTML = '';
+    names.forEach(n=>{
+      const h = document.createElement('div');
+      h.className='mm-dow';
+      h.textContent=n;
+      grid.appendChild(h);
+    });
+  
+    const firstDow = new Date(y,m,1).getDay();
+    const daysIn   = new Date(y,m+1,0).getDate();
+  
+    // 앞 패딩
+    for(let i=0;i<firstDow;i++){
+      const pad = document.createElement('div'); pad.className='mm-pad'; grid.appendChild(pad);
+    }
+    // 날짜
+    for(let d=1; d<=daysIn; d++){
+      const cell = document.createElement('button');
+      cell.type='button';
+      cell.className='mm-day';
+      cell.textContent = d;
+  
+      const thisDate = new Date(y,m,d);
+      const isToday = thisDate.toDateString() === new Date().toDateString();
+      const isSelected = dayViewDate && thisDate.toDateString() === dayViewDate.toDateString();
+      if (isToday) cell.classList.add('is-today');
+      if (isSelected) cell.classList.add('is-selected');
+  
+      cell.addEventListener('click', ()=>{
+        // 날짜 선택 → Day 뷰 동기화 (창은 계속 열어둠)
+        dayViewDate = new Date(y,m,d);
+        activeDate  = new Date(y,m,1);
+        renderCalendar();       // 타임라인/메모/할일 즉시 갱신
+        renderMiniMonthGrid();  // 선택 강조 업데이트
+      });
+  
+      grid.appendChild(cell);
+    }
+  }
 /* ===== 검색 UI 구축(돋보기 옆 인라인 고정) ===== */
 function mountSearchInline() {
   const controls = document.querySelector('.calendar-controls');
@@ -243,6 +344,9 @@ function mountSearchInline() {
 
   let inputBox = wrap.querySelector('.search-inputbox');
   if (!inputBox) { inputBox = document.createElement('div'); inputBox.className='search-inputbox'; }
+
+
+
 
   inputBox.innerHTML = '';
   inputBox.appendChild(input);
@@ -891,10 +995,10 @@ function renderWeekList(){
   });
 
   // 오늘이 속한 주 or 1주차 자동 선택
+  let picked = false;
   const today = new Date();
   if (today.getFullYear() === base.getFullYear() && today.getMonth() === base.getMonth()){
     // 오늘 포함 주 인덱스 찾기
-    let picked = false;
     weeks.forEach((days,i)=>{
       if (days.some(d=> d.toDateString() === today.toDateString())){
         weekOptions.children[i].click(); picked = true;
@@ -1004,6 +1108,32 @@ function getWeekByDate(base){
   const d = new Date(base.getFullYear(), base.getMonth(), base.getDate());
   const start = new Date(d); start.setDate(d.getDate() - d.getDay()); // 일요일 시작
   return Array.from({length:7}, (_,i)=> new Date(start.getFullYear(), start.getMonth(), start.getDate()+i));
+}
+
+if (!document.getElementById('mini-month-style')) {
+  const st = document.createElement('style');
+  st.id = 'mini-month-style';
+  st.textContent = `
+    #miniMonth[aria-hidden="true"]{display:none;}
+    #miniMonth{position:fixed;inset:0;z-index:99999;pointer-events:none;}
+    #miniMonth .mm-window{
+      pointer-events:auto;position:absolute;left:50%;top:14vh;transform:translateX(-50%);
+      width:min(560px,92vw);max-height:72vh;background:#fff;border:1px solid var(--line,#e9e2d9);
+      border-radius:16px;box-shadow:0 18px 44px rgba(0,0,0,.14);display:flex;flex-direction:column;overflow:hidden;
+    }
+    .mm-head{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line,#eee);
+      background:linear-gradient(#fff,#fafafa);}
+    .mm-title{flex:1;text-align:center;font-weight:800;}
+    .mm-prev,.mm-next,.mm-close{border:1px solid var(--line,#e9e2d9);background:#fff;border-radius:10px;padding:6px 10px;cursor:pointer;}
+    .mm-body{padding:10px 12px;overflow:auto;}
+    .mm-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+    .mm-dow{text-align:center;font-size:12px;color:#6b7280;padding:4px 0;}
+    .mm-pad{height:0;}
+    .mm-day{border:1px solid #eee;background:#fff;border-radius:10px;padding:8px 0;cursor:pointer;font-weight:600;}
+    .mm-day.is-today{outline:2px solid #dbeafe;}
+    .mm-day.is-selected{border-color:#111;box-shadow:0 0 0 2px #111 inset;}
+  `;
+  document.head.appendChild(st);
 }
 
 // 추가: "월 뷰와 동일한 DOM"으로 주만 7칸 렌더 (CSS 손대지 않음)
@@ -1359,8 +1489,18 @@ const left = document.createElement('div');
 left.className = 'dtl-date';
 left.innerHTML = `<strong>${y}</strong>.${String(m).padStart(2,'0')}.${String(day).padStart(2,'0')} (${wd})`;
 
+const right = document.createElement('div');
+right.className = 'dtl-head-right';
+const monthBtn = document.createElement('button');
+ monthBtn.type = 'button';
+ monthBtn.className = 'btn month-mini-open';
+ monthBtn.textContent = 'month';
+ monthBtn.addEventListener('click', ()=> openMiniMonth(d)); // ← 미니 창 열기
+ right.appendChild(monthBtn);
+
+
 // 버튼 없이 날짜만 헤더에 추가
-head.appendChild(left);
+head.append(left, right);
 
 wrap.appendChild(head);
 
@@ -1474,6 +1614,7 @@ slotsCol.appendChild(task);
     const sameDay = today.toDateString() === d.toDateString();
     let nowLine = body.querySelector('.now-line');
     let nowDot  = body.querySelector('.now-dot');
+
 
     if (!sameDay){
       // 오늘이 아니면 제거
