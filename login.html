@@ -1,77 +1,186 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PLANEAT • 로그인</title>
+  <title>PLANEAT · 로그인</title>
   <link rel="stylesheet" href="style.css" />
+  <style>
+    /* === 로그인 페이지 전용 최소 CSS (충돌 없이 동작) === */
+    body.auth-bg{background:#f7f3ef;}
+    .auth-shell{min-height:100vh;display:grid;place-items:center;padding:24px;}
+    .auth-card{width:min(420px,92vw);background:#fff;border:1px solid #e9e2d9;border-radius:16px;
+               box-shadow:0 12px 28px rgba(0,0,0,.06);padding:20px 22px;}
+    .auth-head{margin-bottom:10px}
+    .brand{margin:0;font-size:22px;letter-spacing:.5px}
+    .brand-sub{margin:6px 0 0;color:#8a8178;font-size:12px}
+    .field{display:flex;flex-direction:column;gap:6px;margin:10px 0}
+    .field>label{font-size:12px;color:#6f665e}
+    .field>input{height:40px;border:1px solid #e7ded4;border-radius:10px;padding:0 12px;outline:none}
+    .field>input:focus{border-color:#bfa68a;box-shadow:0 0 0 3px rgba(191,166,138,.18)}
+    .actions .btn{height:42px;border-radius:12px;border:1px solid #111;background:#111;color:#fff;width:100%;font-weight:700}
+    .aux-row{margin-top:8px;font-size:11px;display:flex;gap:6px;align-items:center}
+    .aux-row.center{justify-content:center}
+    .tiny-link{color:#2463eb;text-decoration:underline;cursor:pointer}
+    .sep{color:#c0b6ad}
+    /* 보이기/숨기기 제어 */
+    [data-view]{display:none}
+    [data-view].active{display:block}
+  </style>
 </head>
-<body class="login-body">
-  <main class="auth-wrap">
+<body class="auth-bg">
+  <main class="auth-shell">
     <section class="auth-card">
-      <h1 class="auth-title">PLANEAT</h1>
-      <p class="auth-sub">맛집 인플루언서용 캘린더 & 메모</p>
+      <header class="auth-head">
+        <h1 class="brand">PLANEAT</h1>
+        <p class="brand-sub">맛집 플래너 로그인</p>
+      </header>
 
-      <label class="auth-label" for="loginUsername">사용자 이름</label>
-      <input id="loginUsername" class="auth-input" type="text" placeholder="예: jinah_23" autocomplete="username" />
+      <div id="authViews">
+        <!-- LOGIN -->
+        <form id="loginForm" class="auth-form" data-view="login">
+          <div class="field">
+            <label>아이디</label>
+            <input id="liId" type="text" autocomplete="username" required />
+          </div>
+          <div class="field">
+            <label>비밀번호</label>
+            <input id="liPw" type="password" autocomplete="current-password" required />
+          </div>
+          <div class="field actions">
+            <button class="btn" type="submit">로그인</button>
+          </div>
+          <div class="aux-row">
+            <a class="tiny-link" href="#signup">회원가입</a><span class="sep">·</span>
+            <a class="tiny-link" href="#find">비밀번호 찾기</a>
+          </div>
+        </form>
 
-      <div class="auth-actions-row">
-        <button id="doSignup" class="btn primary" type="button">회원가입</button>
-        <button id="doLogin" class="btn" type="button">로그인</button>
+        <!-- SIGNUP -->
+        <form id="signupForm" class="auth-form" data-view="signup">
+          <div class="field">
+            <label>실명</label>
+            <input id="suName" type="text" required />
+          </div>
+          <div class="field">
+            <label>아이디</label>
+            <input id="suId" type="text" autocomplete="username" required />
+          </div>
+          <div class="field">
+            <label>비밀번호</label>
+            <input id="suPw" type="password" autocomplete="new-password" minlength="8" required />
+          </div>
+          <div class="field actions">
+            <button class="btn" type="submit">가입하기</button>
+          </div>
+          <div class="aux-row center">
+            <a class="tiny-link" href="#login">로그인으로 돌아가기</a>
+          </div>
+        </form>
+
+        <!-- FIND (ID+실명) -->
+        <form id="findForm" class="auth-form" data-view="find">
+          <div class="field">
+            <label>아이디</label>
+            <input id="fpId" type="text" required />
+          </div>
+          <div class="field">
+            <label>실명</label>
+            <input id="fpName" type="text" required />
+          </div>
+          <div class="field">
+            <label>새 비밀번호</label>
+            <input id="fpNew" type="password" minlength="8" required />
+          </div>
+          <div class="field actions">
+            <button class="btn" type="submit">비밀번호 재설정</button>
+          </div>
+          <div class="aux-row center">
+            <a class="tiny-link" href="#login">로그인으로 돌아가기</a>
+          </div>
+        </form>
       </div>
-
-      <p class="auth-hint">이름만으로 간단 인증합니다. 같은 이름으로 접속하면 동일한 데이터 공간을 사용해요.</p>
     </section>
   </main>
 
+  <!-- 반드시 auth.js 먼저 -->
+  <script src="auth.js"></script>
   <script>
-    (function(){
-      const APP_PREFIX = 'planeat';
-      const $ = (s,p=document)=>p.querySelector(s);
+    // 보이기/숨기기: 기본은 login만 active
+    function setActive(view){
+      document.querySelectorAll('[data-view]').forEach(el=>{
+        el.classList.toggle('active', el.getAttribute('data-view')===view);
+      });
+    }
+    function route(){
+      const v = (location.hash || '#login').slice(1);
+      setActive(['login','signup','find'].includes(v) ? v : 'login');
+    }
+    // 이미 로그인되어 있으면 메인으로
+    function guard(){
+      try{
+        const me = window.auth && window.auth.getProfile && window.auth.getProfile();
+        if (me) { location.href = 'index.html'; }
+      }catch{}
+    }
 
-      const usernameInput = $('#loginUsername');
-      const doSignup = $('#doSignup');
-      const doLogin  = $('#doLogin');
+    document.addEventListener('DOMContentLoaded', ()=>{
+      guard();
+      route();
+      window.addEventListener('hashchange', route);
 
-      function setCurrentUser(name){
-        localStorage.setItem(`${APP_PREFIX}:currentUser`, name);
-      }
-      function saveUserProfile(name){
-        const key = `${APP_PREFIX}:user:${name}:profile`;
-        if(!localStorage.getItem(key)){
-          localStorage.setItem(key, JSON.stringify({ username:name, createdAt: Date.now() }));
+      // 로그인
+      document.getElementById('loginForm').addEventListener('submit', (e)=>{
+        e.preventDefault();
+        const id = document.getElementById('liId').value.trim();
+        const pw = document.getElementById('liPw').value.trim();
+        const ok = window.auth && window.auth.login && window.auth.login(id, pw);
+        if (ok===true) {
+          location.href = 'index.html';
+        } else if (ok && ok.success===true) { // 어떤 구현이든 성공이면 이동
+          location.href = 'index.html';
+        } else {
+          alert((ok && ok.message) || '아이디/비밀번호를 확인하세요.');
         }
-      }
-      function goHome(){ window.location.href = 'index.html'; }
-
-      function validateName(raw){
-        const v = String(raw||'').trim();
-        if(!v) return null;
-        // 공백만 금지, 너무 긴 이름 방지
-        if(v.length > 40) return null;
-        return v;
-      }
-
-      doSignup.addEventListener('click', ()=>{
-        const name = validateName(usernameInput.value);
-        if(!name){ alert('사용자 이름을 올바르게 입력하세요.'); return; }
-        saveUserProfile(name);
-        setCurrentUser(name);
-        goHome();
       });
 
-      doLogin.addEventListener('click', ()=>{
-        const name = validateName(usernameInput.value);
-        if(!name){ alert('사용자 이름을 올바르게 입력하세요.'); return; }
-        // 존재여부와 관계없이 이름으로 인증(간편 로그인)
-        setCurrentUser(name);
-        goHome();
+      // 회원가입
+      document.getElementById('signupForm').addEventListener('submit', (e)=>{
+        e.preventDefault();
+        const realName = document.getElementById('suName').value.trim();
+        const id = document.getElementById('suId').value.trim();
+        const pw = document.getElementById('suPw').value.trim();
+        const res = window.auth && window.auth.signup
+          ? window.auth.signup({ id, password: pw, realName })
+          : { success:false, message:'auth.signup 미탑재' };
+        if (!res || res.success===false) return alert(res.message||'회원가입 실패');
+        alert('가입 완료! 로그인해주세요.');
+        location.hash = '#login';
+        e.target.reset();
       });
 
-      // 이미 로그인 되어 있으면 바로 이동
-      const current = localStorage.getItem(`${APP_PREFIX}:currentUser`);
-      if(current && current !== 'guest'){ goHome(); }
-    })();
+      // 비밀번호 재설정 (가능한 함수 자동 탐지)
+      document.getElementById('findForm').addEventListener('submit', (e)=>{
+        e.preventDefault();
+        const id   = document.getElementById('fpId').value.trim();
+        const name = document.getElementById('fpName').value.trim();
+        const npw  = document.getElementById('fpNew').value.trim();
+
+        let res = { success:false, message:'지원 함수 없음' };
+        if (window.auth && typeof window.auth.resetPasswordByIdName === 'function') {
+          res = window.auth.resetPasswordByIdName({ id, realName:name, newPassword:npw });
+        } else if (window.auth && typeof window.auth.resetPasswordByHints === 'function') {
+          // 네가 올린 구버전(auth.js)이면 힌트 기반만 지원 → 안내 후 실패 처리
+          alert('현재 auth.js는 "별명+실명+메모" 방식만 지원합니다.\n(아이디+실명 방식은 auth.js 업데이트 필요)');
+          return;
+        }
+
+        if (!res || res.success===false) return alert(res.message||'재설정 실패');
+        alert('비밀번호가 변경되었습니다. 새 비밀번호로 로그인하세요.');
+        location.hash = '#login';
+        e.target.reset();
+      });
+    });
   </script>
 </body>
 </html>
