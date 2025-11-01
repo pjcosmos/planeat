@@ -8,7 +8,7 @@
 </head>
 <body>
   <div class="calendar-container">
-    <!-- 상단 로그인 상태바 (로그아웃만) -->
+    <!-- 상단 로그인 상태바 -->
     <div class="auth-bar">
       <span id="authStatus" class="muted">로그인 상태 확인중…</span>
       <div class="auth-actions">
@@ -16,21 +16,21 @@
       </div>
     </div>
 
-    <!-- Header -->
+    <!-- 헤더 -->
     <div class="calendar-header">
       <button id="prevMonth" type="button" aria-label="이전 달">&lt;</button>
       <h2 id="currentMonthYear"></h2>
       <button id="nextMonth" type="button" aria-label="다음 달">&gt;</button>
     </div>
 
-    <!-- Controls -->
+    <!-- 컨트롤 -->
     <div class="calendar-controls">
       <button id="monthView" class="active" type="button">월</button>
       <button id="weekView" type="button">주</button>
       <button id="highlightView" type="button">일</button>
       <button id="todayBtn" type="button" title="오늘로 이동">Today</button>
 
-      <!-- 🔎 식당 검색 버튼 + 패널 -->
+      <!-- 검색 (인라인) -->
       <button id="searchBtn" type="button" class="icon-btn soft" title="식당 검색" aria-label="식당 검색">🔎</button>
       <div id="searchPanel" class="search-panel" aria-hidden="true">
         <input id="searchInput" type="text" placeholder="식당명 검색…" />
@@ -38,13 +38,13 @@
       </div>
     </div>
 
-    <!-- 월/주 전용: 달 전체 할 일 퀵바 -->
+    <!-- 월/주 전용 퀵바 -->
     <div id="quickTodoBar" class="quick-todo-bar"></div>
 
-    <!-- Week 옵션(주차 선택) -->
+    <!-- 주차 선택 -->
     <div id="weekOptions" class="week-options"></div>
 
-    <!-- 캘린더/리스트 그리드 -->
+    <!-- 캘린더 그리드 -->
     <div id="calendarGrid" class="calendar-grid"></div>
   </div>
 
@@ -52,10 +52,9 @@
   <div id="eventModal" class="modal" aria-hidden="true">
     <div class="modal-content">
       <button class="close-button" type="button">닫기</button>
-
       <h3 id="modalDate" style="margin-top:0;"></h3>
 
-      <!-- Memo 섹션 -->
+      <!-- 메모 섹션 -->
       <button class="toggle-header" type="button" data-target="memoForm" aria-expanded="false">
         <span class="toggle-title">🍽️ 메모(식당/사진/노트)</span>
         <span class="caret">▲</span>
@@ -71,9 +70,11 @@
             </div>
             <div class="photo-inline">
               <button id="photoIconBtn" type="button" class="chip">사진 선택</button>
-              <!-- jpeg만 허용 -->
-              <input id="photoUpload" type="file" accept="image/jpeg" />
+              <input id="photoUpload" type="file"
+                     accept=".heic,.HEIC,image/heic,image/heif,image/jpeg"
+                     multiple />
             </div>
+            <div id="photoThumbs" class="thumbs-wrap"></div>
           </div>
 
           <label class="sponsor-check">
@@ -82,13 +83,14 @@
 
           <input id="restaurantName" type="text" placeholder="식당 이름" />
           <textarea id="memoText" placeholder="메모 내용"></textarea>
+
           <div class="actions">
             <button id="addMemoBtn" class="btn primary" type="button">메모 추가</button>
           </div>
         </div>
       </div>
 
-      <!-- Todo 섹션 -->
+      <!-- 할 일 섹션 -->
       <button class="toggle-header" type="button" data-target="todoForm" aria-expanded="false">
         <span class="toggle-title">✅ 할 일</span>
         <span class="caret">▲</span>
@@ -103,20 +105,16 @@
               <input id="todoTimePopup" type="time" />
             </div>
           </div>
-
-          <!-- 플랫폼 선택 -->
           <select id="todoPlatform" class="platform-select" aria-label="플랫폼">
             <option value="">플랫폼 선택</option>
             <option value="블로그">블로그</option>
             <option value="인스타">인스타</option>
             <option value="유튜브">유튜브</option>
           </select>
-
           <button id="addTodoBtn" class="btn primary" type="button">추가</button>
         </div>
       </div>
 
-      <!-- 저장된 항목들 -->
       <div class="saved-columns" style="margin-top:14px;">
         <div class="saved-col">
           <h4>메모</h4>
@@ -130,6 +128,37 @@
     </div>
   </div>
 
-  <script src="script.js" defer></script>
+  <!-- 스크립트: auth.js → 가드 → app -->
+  <script src="auth.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const statusEl = document.getElementById('authStatus');
+      const logoutBtn = document.getElementById('logoutBtn');
+
+      // 로그인 가드
+      let me = null;
+      try { me = window.auth && window.auth.getProfile && window.auth.getProfile(); } catch {}
+      if (!me) {
+        location.replace('login.html');
+        return;
+      }
+
+      // 상태표시
+      const displayName = me.nickname || me.realName || me.id;
+      if (statusEl) statusEl.textContent = `안녕하세요, ${displayName}님`;
+
+      // 로그아웃
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          try { window.auth.logout(); } catch {}
+          location.replace('login.html');
+        });
+      }
+    });
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/heic2any/dist/heic2any.min.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
