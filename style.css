@@ -693,5 +693,52 @@ textarea{ resize: vertical; }
   grid-auto-rows: minmax(20px, auto) !important; /* 기존 120~150px 정도로 잡혀있던 거 ↓ */
 }
 
+/* ===== Mini Month: 독립 미니 탭 창 ===== */
+#miniMonth[aria-hidden="true"] { display: none; }
+#miniMonth {
+  position: fixed; inset: 0;      /* 전체 영역에 깔리지만 */
+  z-index: 99999;
+  pointer-events: none;           /* 바깥쪽은 클릭 막기용(창 외부 클릭 무시) */
+}
+#miniMonth .mm-window {
+  pointer-events: auto;           /* 창 내부만 클릭 가능 */
+  position: absolute;
+  left: 50%; top: 14vh; transform: translateX(-50%);
+  width: min(560px, 92vw);
+  max-height: 72vh;
+  background: #fff;
+  border: 1px solid var(--line,#e9e2d9);
+  border-radius: 16px;
+  box-shadow: 0 18px 44px rgba(0,0,0,.14);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.mm-head {
+  display:flex; align-items:center; gap:8px;
+  padding: 10px 12px; border-bottom:1px solid var(--line,#eee);
+  background: linear-gradient(#fff, #fafafa);
+}
+.mm-title { flex:1; text-align:center; font-weight:800; }
+.mm-prev, .mm-next, .mm-close {
+  border:1px solid var(--line,#e9e2d9); background:#fff; border-radius:10px;
+  padding:6px 10px; cursor:pointer;
+}
+.mm-close { margin-left:auto; }
+
+.mm-body { padding: 10px 12px; overflow:auto; }
+.mm-grid {
+  display:grid; grid-template-columns: repeat(7, 1fr); gap:6px;
+}
+.mm-dow {
+  text-align:center; font-size:12px; color:#6b7280; padding:4px 0;
+}
+.mm-pad { height: 0; }
+.mm-day {
+  border:1px solid #eee; background:#fff; border-radius:10px; padding:8px 0;
+  cursor:pointer; font-weight:600;
+}
+.mm-day.is-today { outline:2px solid #dbeafe; }
+.mm-day.is-selected { border-color:#111; box-shadow:0 0 0 2px #111 inset; }
+
 
 
