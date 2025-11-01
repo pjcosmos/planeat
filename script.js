@@ -1882,7 +1882,24 @@ nextMonthBtn.onclick = ()=>{
   ensureQuickTodoBarMount();
   window.renderQuickTodoBar && window.renderQuickTodoBar();
 })();
+(function bucketPatchRender(){
+  const _rc = window.renderCalendar;
+  window.renderCalendar = function patched(){
+    _rc && _rc.apply(this, arguments);
 
+    // mount & render
+    renderBucketPanel();
+
+    // 뷰별 표시/숨김
+    const panel = document.getElementById('bucketPanel');
+    if(!panel) return;
+    if (window.currentView === 'day') {
+      panel.style.display = 'none';
+    } else {
+      panel.style.display = 'block';
+    }
+  };
+})();
 /* ===== 부팅 ===== */
 (function boot(){
   refreshAllRestaurants();
@@ -2195,21 +2212,4 @@ function renderBucketPanel(){
    - month / week 에서 보여주고
    - day 뷰에서는 숨겨 UX 집중
 */
-(function bucketPatchRender(){
-  const _rc = window.renderCalendar;
-  window.renderCalendar = function patched(){
-    _rc && _rc.apply(this, arguments);
 
-    // mount & render
-    renderBucketPanel();
-
-    // 뷰별 표시/숨김
-    const panel = document.getElementById('bucketPanel');
-    if(!panel) return;
-    if (window.currentView === 'day') {
-      panel.style.display = 'none';
-    } else {
-      panel.style.display = 'block';
-    }
-  };
-})();
