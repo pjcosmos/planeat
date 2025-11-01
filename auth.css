@@ -1,0 +1,100 @@
+:root{
+    --navy:#1e2b3b;
+    --cream:#f7f4ee;
+    --bone:#fffaf3;
+    --ink:#2a2623;
+    --muted:#80786f;
+    --line:#e7dfd3;
+    --shadow:0 18px 48px rgba(26,22,19,.10);
+  }
+  
+  body{
+    margin:0;
+    background:var(--bone);
+    font-family:"Pretendard", sans-serif;
+    color:var(--ink);
+  }
+  
+  .auth-shell{
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    padding:60px 20px;
+  }
+  
+  .auth-card{
+    background:linear-gradient(#fff,var(--cream));
+    border:1px solid var(--line);
+    border-radius:20px;
+    box-shadow:var(--shadow);
+    padding:32px 28px 26px;
+    width:360px;
+  }
+  
+  .brand-title{
+    font-weight:900;
+    font-size:24px;
+    color:var(--navy);
+    margin:0 0 4px;
+  }
+  
+  .auth-sub{
+    margin:0 0 28px;
+    font-size:14px;
+    color:var(--muted);
+  }
+  
+  .auth-form{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+  
+  .field{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  
+  label{ font-size:13px; font-weight:700; color:#6e685e; }
+  
+  input{
+    padding:12px 14px;
+    border-radius:10px;
+    border:1px solid var(--line);
+    background:#fffdf8;
+  }
+  
+  input:focus{
+    outline:0;
+    border-color:#d9c7a8;
+    box-shadow:0 0 0 3px rgba(200,170,120,.28);
+  }
+  
+  .actions{
+    display:flex; gap:8px; align-items:center;
+  }
+  
+  .spacer{ flex:1; }
+  
+  .btn{
+    padding:10px 14px;
+    border-radius:10px;
+    border:1px solid var(--line);
+    text-decoration:none;
+    font-weight:700;
+    text-align:center;
+    display:inline-block;
+  }
+  
+  .btn-primary{
+    background:var(--navy);
+    color:#fff;
+  }
+  
+  .btn-ghost{
+    background:#fff;
+    color:var(--navy);
+  }
+  
