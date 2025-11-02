@@ -607,6 +607,7 @@ let tempCover  = Math.max(0, m.coverIdx || 0);
 const left = document.createElement('div');
 const thumbs = document.createElement('div');
 thumbs.style.display = 'flex'; thumbs.style.gap = '6px'; thumbs.style.flexWrap = 'wrap';
+
 function drawThumbs(){
   thumbs.innerHTML = '';
   if (!tempPhotos.length){
@@ -614,26 +615,64 @@ function drawThumbs(){
     return;
   }
   tempPhotos.forEach((src, i) => {
-    const b = document.createElement('button'); b.type='button';
+    const b = document.createElement('div');
     b.style.cssText = `
       position:relative;width:56px;height:56px;border-radius:10px;overflow:hidden;
       border:2px solid ${i===tempCover ? '#111':'#e5e7eb'};
+      display:flex;align-items:center;justify-content:center;
     `;
+
     const im = document.createElement('img');
     im.src = src; im.alt = `p${i+1}`;
     im.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+
+    // 커버 표시
     const star = document.createElement('span');
     star.textContent = i===tempCover ? '★' : '☆';
-    star.style.cssText = 'position:absolute;right:3px;top:3px;background:#fff;border:1px solid #e5e7eb;border-radius:999px;padding:0 3px;font-size:12px;';
-    b.append(im, star);
+    star.style.cssText = `
+      position:absolute;right:3px;top:3px;background:#fff;border:1px solid #e5e7eb;
+      border-radius:999px;padding:0 3px;font-size:12px;line-height:1.1;
+    `;
+
+    // ✅ 개별 삭제 버튼
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.setAttribute('aria-label','사진 삭제');
+    del.textContent = '×';
+    del.style.cssText = `
+      position:absolute;left:3px;top:3px;width:18px;height:18px;border-radius:999px;
+      border:1px solid #e5e7eb;background:#fff;cursor:pointer;font-size:12px;
+      display:flex;align-items:center;justify-content:center;line-height:1;
+    `;
+    del.addEventListener('click', (e)=>{
+      e.stopPropagation(); // 커버 토글과 분리
+      // 삭제
+      tempPhotos.splice(i, 1);
+
+      // 커버 인덱스 보정
+      if (tempPhotos.length === 0) {
+        tempCover = 0;
+      } else if (i === tempCover) {
+        // 삭제한 게 커버였으면: 바로 이전(없으면 0)
+        tempCover = Math.max(0, Math.min(tempCover - 1, tempPhotos.length - 1));
+      } else if (i < tempCover) {
+        // 앞쪽이 지워졌으면 커버 위치 한 칸 당김
+        tempCover = Math.max(0, tempCover - 1);
+      }
+      drawThumbs();
+    });
+
+    // 커버 선택: 썸네일 영역 클릭
     b.addEventListener('click', ()=>{ tempCover=i; drawThumbs(); });
+
+    b.append(im, star, del);
     thumbs.appendChild(b);
   });
 }
 drawThumbs();
 left.appendChild(thumbs);
 
-// 오른쪽: 파일 추가 버튼
+// 오른쪽: 파일 추가 버튼 (기존 그대로)
 const right = document.createElement('div');
 const hiddenFile = document.createElement('input');
 hiddenFile.type='file'; hiddenFile.accept='image/*'; hiddenFile.multiple = true; hiddenFile.className='file-hidden';
@@ -651,7 +690,6 @@ hiddenFile.addEventListener('change', async (e)=>{
 right.append(addBtn, hiddenFile);
 
 row2.append(left, right);
-
 
         const row3=document.createElement('div'); row3.className='inline-actions';
         const cancel=document.createElement('button'); cancel.className='btn'; cancel.textContent='취소';
@@ -2491,4 +2529,9 @@ function renderBucketPanel(){
    - month / week 에서 보여주고
    - day 뷰에서는 숨겨 UX 집중
 */
+
+const btn = document.getElementById('memoPhotoBtn');
+const inp = document.getElementById('memoPhoto');
+if (btn && inp) btn.onclick = () => inp.click();
+
 
