@@ -58,11 +58,10 @@
       <h3 id="modalDate" style="margin-top:0;"></h3>
 
       <!-- 메모 섹션 -->
-      <button class="toggle-header" type="button" data-target="memoForm" aria-expanded="false">
-        <span class="toggle-title">🍽️ 메모(식당/사진/노트)</span>
-        <span class="caret">▲</span>
+      <button id="memoToggle" class="toggle-header" type="button" data-target="memoForm" aria-expanded="false">
+        <span class="toggle-title">메모</span>
       </button>
-      <div id="memoForm" class="toggle-content">
+      <div id="memoForm" class="toggle-content open">
         <div class="memo-stack">
           <div class="grid-2">
             <div class="memo-categories">
@@ -94,9 +93,8 @@
       </div>
 
       <!-- 할 일 섹션 -->
-      <button class="toggle-header" type="button" data-target="todoForm" aria-expanded="false">
-        <span class="toggle-title">✅ 할 일</span>
-        <span class="caret">▲</span>
+      <button id="todoToggle" class="toggle-header" type="button" data-target="todoForm" aria-expanded="false">
+        <span class="toggle-title">할 일</span>
       </button>
       <div id="todoForm" class="toggle-content">
         <div class="todo-row">
