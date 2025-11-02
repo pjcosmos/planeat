@@ -741,4 +741,259 @@ textarea{ resize: vertical; }
 .mm-day.is-selected { border-color:#111; box-shadow:0 0 0 2px #111 inset; }
 
 
+/* === Photo bar: 이모지 버튼만 보이고 파일 인풋은 숨김 === */
+.photo-bar{
+  display:flex; align-items:center; gap:8px;
+}
+.photo-emoji{
+  appearance:none; border:1px solid var(--line,#e9e2d9);
+  background:#fff; border-radius:12px; width:40px; height:40px;
+  display:grid; place-items:center; font-size:20px; cursor:pointer;
+  transition:transform .06s ease, box-shadow .2s ease;
+}
+.photo-emoji:hover{ transform:translateY(-1px); box-shadow:var(--soft, 0 8px 20px rgba(0,0,0,.06)); }
+.file-hidden{ display:none !important; }  /* ← 기본 파일 선택 UI 완전 숨김 */
 
+/* 썸네일 삭제 버튼(이미 쓰고 있으면 생략 가능) */
+.thumb-delete{
+  position:absolute; top:8px; right:8px; width:28px; height:28px;
+  border-radius:50%; border:1px solid var(--line,#e9e2d9); background:#fff; cursor:pointer;
+}
+
+.photo-emoji { display: none !important; }
+
+/* 기본 파일 선택 UI 숨김 */
+input[type="file"] {
+  display: none !important;
+}
+
+
+.panel-body {
+  display: none;
+}
+
+.panel-body.open {
+  display: block;
+}
+/* === 토글 공통 === */
+.toggle-content { display: none; }
+.toggle-content.open { display: block; }
+
+/* (선택) 버튼 시각 피드백 */
+.toggle-header { cursor: pointer; }
+.toggle-header[aria-expanded="true"]::after { content: " ▲"; }
+.toggle-header[aria-expanded="false"]::after { content: " ▼"; }
+
+/* =========================
+   MZ Clean Pack (drop-in)
+   - 기능 변경 없음: 스타일만 얹음
+   - Pretendard 기준, 미니멀 · 라운드 · 소프트 섀도
+   ========================= */
+   :root{
+    --mz-bg:#fafafa;
+    --mz-panel:#ffffff;
+    --mz-text:#222;
+    --mz-muted:#7a7a7a;
+    --mz-line:#ececec;
+    --mz-acc:#111;           /* 포커스/프라이머리 */
+    --mz-accl:#0d6;          /* 강조 하이라이트(연초록) */
+    --mz-chip:#f6f6f6;       /* 칩 배경 */
+    --mz-shadow:0 10px 24px rgba(0,0,0,.08);
+    --mz-r:14px;             /* 라운드 */
+  }
+  
+  /* 패널(모달 속 입력박스들) */
+  .modal-content{
+    border-radius: 18px !important;
+    background: var(--mz-panel) !important;
+    box-shadow: var(--mz-shadow);
+    border: 1px solid var(--mz-line);
+    overflow: hidden;
+  }
+  
+  /* 토글 헤더 */
+  .toggle-header{
+    width: 100%;
+    text-align: left;
+    padding: 14px 16px;
+    border: 1px solid var(--mz-line);
+    border-radius: var(--mz-r);
+    background: linear-gradient(#fff, #fbfbfb);
+    font-weight: 800;
+    font-size: 15px;
+    color: var(--mz-text);
+    transition: transform .08s ease, box-shadow .15s ease;
+  }
+  .toggle-header:hover{ box-shadow: 0 6px 16px rgba(0,0,0,.06); }
+  .toggle-header[aria-expanded="true"]{ box-shadow: inset 0 0 0 2px #eee; }
+  
+  /* 토글 컨텐츠 래퍼 */
+  .toggle-content{
+    margin-top: 10px;
+    padding: 12px;
+    border: 1px dashed var(--mz-line);
+    border-radius: var(--mz-r);
+    background: #fff;
+  }
+  
+  /* 폼 그리드 */
+  .form-grid{
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  @media (min-width: 780px){
+    .form-grid.two{ grid-template-columns: 1fr 1fr; }
+    .form-grid.three{ grid-template-columns: 1fr 1fr 1fr; }
+  }
+  
+  /* 라벨 + 인풋 묶음 */
+  .form-item{ display:flex; flex-direction:column; gap:6px; }
+  .form-item label{ font-size:12px; font-weight:700; color:#666; }
+  
+  /* 인풋/텍스트에어리어/셀렉트 공통 */
+  .input, input[type="text"], input[type="time"], input[type="date"],
+  textarea, select{
+    appearance: none;
+    border: 1px solid var(--mz-line);
+    border-radius: 12px;
+    padding: 10px 12px;
+    background: #fff;
+    outline: none;
+    transition: box-shadow .15s ease, border-color .15s ease, transform .03s ease;
+    font-size: 14px;
+  }
+  textarea{ min-height: 84px; resize: vertical; }
+  .input:focus, input:focus, textarea:focus, select:focus{
+    border-color: #d0d0d0;
+    box-shadow: 0 0 0 3px rgba(0,0,0,.04), 0 0 0 2px rgba(0,0,0,.02);
+  }
+  .input:active, input:active, textarea:active{ transform: translateY(0.5px); }
+  
+  /* 칩(아침/점심/저녁/카페) */
+  .memo-categories{ display:flex; gap:8px; flex-wrap:wrap; }
+  .memo-categories .chip{
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--mz-line);
+    background: var(--mz-chip);
+    font-weight: 700; font-size: 13px;
+    color: #333;
+    transition: transform .08s ease, box-shadow .15s ease, background .15s;
+  }
+  .memo-categories .chip:hover{ box-shadow: 0 6px 16px rgba(0,0,0,.06); }
+  .memo-categories .chip.active{
+    background: #111; color:#fff; border-color:#111;
+  }
+  
+  /* 버튼 */
+  .btn{
+    border: 1px solid var(--mz-line);
+    background: #fff;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform .08s ease, box-shadow .15s ease, background .15s;
+  }
+  .btn:hover{ box-shadow: 0 8px 18px rgba(0,0,0,.08); }
+  .btn:active{ transform: translateY(0.5px); }
+  .btn.primary{ background:#111; color:#fff; border-color:#111; }
+  .btn.ghost{ background:#f8f8f8; }
+  
+  /* 아이콘 버튼(연필/휴지통/사진) */
+  .icon-btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:36px; height:36px; border-radius:10px;
+    border:1px solid var(--mz-line); background:#fff; cursor:pointer;
+    transition: transform .08s ease, box-shadow .15s ease, background .15s;
+  }
+  .icon-btn:hover{ box-shadow: 0 6px 16px rgba(0,0,0,.06); }
+  .icon-svg{ width:18px; height:18px; }
+  
+  /* 사진 썸네일 선택(에디터/추가) */
+  .thumb-choice{ background:#fff; }
+  .thumb-choice img{ border-radius:10px; }
+  .inline-editor .grid-2{ display:grid; grid-template-columns: 1fr auto; gap:10px; }
+  .file-hidden{ display:none; }
+  
+  /* 저장 목록 카드(메모/할 일) */
+  .saved-memo-item, .todo-item{
+    position: relative;
+    padding: 12px 12px;
+    border:1px solid var(--mz-line);
+    border-radius: 12px;
+    background:#fff;
+  }
+  .saved-memo-item + .saved-memo-item,
+  .todo-item + .todo-item{ margin-top: 8px; }
+  .saved-memo-item h5{ margin:0 0 8px 0; font-size:15px; }
+  .saved-memo-item img{
+    width:100%; max-height:200px; object-fit:cover; border-radius:10px; border:1px solid #f0f0f0;
+  }
+  
+  /* 액션 영역 오른쪽 상단 */
+  .item-actions{
+    position:absolute; right:10px; top:10px; display:flex; gap:6px;
+  }
+  
+  /* 할 일 뱃지/체크 */
+  .todo-time-badge{
+    font-size:12px; padding:3px 8px; border-radius:999px;
+    border:1px solid #e9e9e9; background:#f7f7f7;
+  }
+  .todo-item.completed .todo-text{ text-decoration: line-through; color:#9a9a9a; }
+  
+  /* 시간 선택 팝오버(인라인) */
+  .time-inline{ position: relative; display:inline-flex; align-items:center; gap:6px; }
+  #timePopover{
+    position:absolute; left:0; top:calc(100% + 6px);
+    border:1px solid var(--mz-line); border-radius:12px;
+    background:#fff; box-shadow: var(--mz-shadow);
+    padding:10px; z-index:9999; display:none;
+  }
+  #timePopover.open{ display:block; }
+  
+  /* 검색바/검색 결과(상단 인라인) */
+  .search-wrap{ gap:10px !important; }
+  #searchInput{
+    border:1px solid var(--mz-line) !important;
+    background:#fff !important; border-radius:12px !important;
+    height:38px; padding: 0 12px;
+    font-size:14px;
+  }
+  #searchPanel{
+    border-radius:14px !important; border:1px solid var(--mz-line) !important;
+  }
+  
+  /* 달력 셀 안 칩(무카테고리/카테고리 2줄) */
+  .day-list{ display:flex; flex-direction:column; gap:4px; }
+  .dl-row{ display:flex; flex-wrap:wrap; gap:6px; }
+  .dl-item{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:6px 10px; border-radius:999px;
+    border:1px solid var(--mz-line); background:#fff;
+    font-size:12px; font-weight:700;
+  }
+  .dl-item.uncat{ background:var(--mz-chip); }
+  .dl-bar-text[data-cat="meal"]{ color:#111; }
+  .dl-bar-text[data-cat="cafe"]{ color:#3b82f6; }
+  
+  /* Day 뷰 타임라인 카드 */
+  .dtl-wrap{ gap:14px !important; }
+  .dtl-head{ border-radius: 12px !important; }
+  .task{
+    border-radius: 12px !important;
+    background: #f8fafc !important;
+    border: 1px solid #eaeaea !important;
+  }
+  .now-line{ height: 2px !important; }
+  
+  /* 버킷리스트 패널(상단) */
+  .bucket-wrap{
+    border-radius: 12px !important; border:1px solid var(--mz-line) !important;
+    box-shadow: var(--mz-shadow); background:#fff;
+  }
+  .bucket-item{ border-radius:12px; }
+  .bucket-icon{ border-radius:10px; }
+  
