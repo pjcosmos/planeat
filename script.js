@@ -87,7 +87,7 @@ const ICONS = {
 const CATEGORY_LABELS = { morning:'아침', lunch:'점심', dinner:'저녁', cafe:'카페' };
 
 // 🔎 검색 패널 최소 글자수 (0이면 아무 글자 없이도 열림)
-const SEARCH_MIN_CHARS = 2;
+const SEARCH_MIN_CHARS = 1;
 
 
 /* ===== 월 칸 요약 배지 ===== */
@@ -308,16 +308,6 @@ function mountSearchInline() {
     input.type = 'text';              // 그대로 둬도 OK
     input.placeholder = '식당명 검색…';
   }
-
-  input.addEventListener('input', () => {
-    const q = input.value.trim();
-    if (q.length >= SEARCH_MIN_CHARS) {
-      openSearchPanel();
-      renderSearchList(q);
-    } else {
-      closeSearchPanel();
-    }
-  });
   // 🔒 자동완성/교정/맞춤법/패스워드매니저/입력기록 끄기
   input.setAttribute('autocomplete', 'off');
   input.setAttribute('autocorrect', 'off');
@@ -405,6 +395,24 @@ function mountSearchInline() {
   };
   document.addEventListener('click', window.__searchOutsideHandler);
 }
+
+// ✅ 메모 데이터 변경 후 검색 인덱스/패널 즉시 갱신
+function refreshSearchAfterDataChange() {
+  // 인덱스 재수집
+  refreshAllRestaurants();
+
+  // 패널 열려 있고, 글자수 조건 충족 시 결과 재렌더
+  const panel = document.getElementById('searchPanel');
+  const input = document.getElementById('searchInput');
+  if (!panel || !input) return;
+
+  const q = (input.value || '').trim();
+  const isOpen = panel.getAttribute('aria-hidden') === 'false';
+  if (isOpen && q.length >= SEARCH_MIN_CHARS) {
+    renderSearchList(q);
+  }
+}
+
 function openSearchPanel(){
   const panel = document.getElementById('searchPanel');
   const input = document.getElementById('searchInput');
@@ -446,7 +454,14 @@ let editingMemoIndex= null;
 let editingTodoIndex= null;
 
 /* ===== DOM 참조 ===== */
-const calendarGrid     = document.getElementById('calendarGrid');
+// 캘린더 그리드 마운트 보강
+let calendarGrid = document.getElementById('calendarGrid') || document.querySelector('.calendar-grid');
+if (!calendarGrid) {
+  calendarGrid = document.createElement('div');
+  calendarGrid.id = 'calendarGrid';
+  calendarGrid.className = 'calendar-grid';
+  (document.querySelector('.calendar') || document.body).appendChild(calendarGrid);
+}
 const currentMonthYear = document.getElementById('currentMonthYear') || (()=>{
   const h = document.createElement('h2'); h.id='currentMonthYear'; (document.querySelector('.calendar-controls')||document.body).appendChild(h); return h;
 })();
@@ -565,6 +580,7 @@ function renderSaved() {
       dbtn.addEventListener('click', ()=>{
         if(!confirm('이 메모를 삭제할까요?')) return;
         const data = load(selectedDate); data.memos.splice(idx,1); save(selectedDate,data);
+        refreshSearchAfterDataChange();
         renderSaved(); renderCalendar();
       });
 
@@ -704,6 +720,8 @@ row2.append(left, right);
           item.coverIdx       = Math.max(0, Math.min(tempCover, item.photos.length-1));
           item.photo          = item.photos[item.coverIdx] || ''; // 대표 1장 유지
           save(selectedDate, data);
+          refreshSearchAfterDataChange();
+
           editingMemoIndex = null;
           renderSaved(); 
           renderCalendar();
@@ -871,6 +889,7 @@ on(addMemoBtn,'click',()=>{
     return;
   }
 
+
   const data = load(selectedDate);
   const photos = memoPhotos.slice(); // 복사
 
@@ -885,6 +904,8 @@ on(addMemoBtn,'click',()=>{
   });
 
   save(selectedDate, data);
+
+  refreshSearchAfterDataChange();   // ← 추가!
 
   // 입력 초기화
   memoPhotos = [];
@@ -905,6 +926,9 @@ on(addTodoBtn,'click',()=>{
   const data = load(selectedDate);
   data.todos.push({ text, time, completed:false, repeat:'none', _aid: aid() });
   save(selectedDate,data);
+
+  refreshSearchAfterDataChange();
+
   if (todoInput) todoInput.value = '';
   if (todoTimePopup) todoTimePopup.value = '';
   if (todoTimeDisplay) todoTimeDisplay.textContent = '';
@@ -986,7 +1010,24 @@ function setDayPhoto(cellEl, src){
   main.src  = src;
 }
 
+// 썸네일 투명/블렌딩 금지(가장 높은 우선순위)
+if (!document.getElementById('photo-opacity-lock')) {
+  const tag = document.createElement('style');
+  tag.id = 'photo-opacity-lock';
+  tag.textContent = `
+    .day-bg-img, .day-bg-underlay {
+      opacity: 1 !important;
+      filter: none !important;
+      mix-blend-mode: normal !important;
+      image-rendering: auto !important;
+    }
+  `;
+  document.head.appendChild(tag);
+}
+
 function renderWeekList(){
+  if (!weekOptions) return;   // ← 가드 추가
+
   weekOptions.innerHTML = '';
 
     // 🔁 이 달(=activeDate)만 기준으로 주차 생성
@@ -1592,6 +1633,11 @@ wrap.appendChild(head);
   grid.append(hoursCol, slotsCol);
   body.appendChild(grid);
   wrap.appendChild(body);
+  // 타임라인 영역 생성 직후(슬롯 24개 만든 다음쯤 위치해도 OK)
+slotsCol.style.position = 'relative';
+slotsCol.style.height   = String(48 * 24) + 'px';  // 24시간 * 48px
+grid.style.position     = 'relative';              // 기준점 일치
+
 
   // 할 일 배치 (시간 있는 항목만 타임라인, 없는 건 아래 박스)
   const parseTimeToMinutes = (t)=>{
@@ -1665,9 +1711,7 @@ slotsCol.appendChild(task);
     if (!nowDot ){ nowDot  = document.createElement('div'); nowDot.className='now-dot';  body.appendChild(nowDot ); }
 
     const minutes = today.getHours()*60 + today.getMinutes();
-    const yPx = minutes * pxPerMin; // 상단으로부터 px
-    const gridTop = grid.getBoundingClientRect().top + window.scrollY;
-    const bodyTop = body.getBoundingClientRect().top + window.scrollY;
+const yPx = minutes * pxPerMin;
 
     // now-line은 slotsCol 내부 상대가 아니라 body 기준으로 절대 배치
     // dtl-body 내부 top=0 기준으로 yPx 배치하려면, 0시 기준이 slotsCol 상단과 일치하므로 그대로 사용
@@ -1716,6 +1760,7 @@ function renderCalendar(){
         d.className='day-name';
         d.textContent=n;
         calendarGrid.appendChild(d);
+        
      });
      for(let i=0;i<firstDow;i++){
        calendarGrid.appendChild(document.createElement('div')); // 앞 패딩
@@ -1724,8 +1769,8 @@ function renderCalendar(){
 
     if(currentView==='month'){
       for(let day=1; day<=daysIn; day++){
-      const cell=document.createElement('div'); cell.className='current-month';
-      const num=document.createElement('div'); num.className='date-number'; num.textContent=String(day);
+        const cell = document.createElement('div');
+        cell.className = 'current-month day-cell';      const num=document.createElement('div'); num.className='date-number'; num.textContent=String(day);
       cell.appendChild(num);
 
       const d=new Date(y,m,day);
@@ -1745,13 +1790,12 @@ function renderCalendar(){
 
   if(currentView==='month'){
     calendarGrid.style.display='grid';
-    weekOptions.style.display='none';
+    weekOptions && (weekOptions.style.display='none'); // ← 가드 추가
   } // 기존 renderCalendar() 내부의 주(week) 분기 부분을 아래로 교체
 else if (currentView === 'week') {
   // 주차 선택 바 보이기
-  if (weekOptions) {
-    weekOptions.style.display = 'flex';
-  }
+  weekOptions && (weekOptions.style.display = 'flex'); // ← 가드 추가
+
   // 주차 버튼(1주차~N주차) 다시 그리기
   renderWeekList();
 }
@@ -1760,6 +1804,8 @@ else if (currentView === 'week') {
   else if(currentView==='day'){
     calendarGrid.style.display='block';
     weekOptions.style.display='block';
+    weekOptions && (weekOptions.style.display='block'); // ← 가드 유지/추가
+
     renderDayTimeline();
   } else {
     calendarGrid.style.display='none';
@@ -1784,15 +1830,15 @@ on(monthViewBtn,'click', ()=>{
   renderCalendar(); // ✅ activeDate 그대로 (원래 기능 보존)
 });
 
-/* 여기를 교체 */
-weekViewBtn.onclick = ()=>{
+on(weekViewBtn,'click', ()=>{
   currentView = 'week';
   monthViewBtn?.classList.remove('active');
   weekViewBtn?.classList.add('active');
   highlightViewBtn?.classList.remove('active');
   clearNowLineTimer();
   renderCalendar(); // 스타일 건드리지 않음
-};
+});
+
 
 
 
@@ -1812,9 +1858,9 @@ on(todayBtn,'click',()=>{
 });
 
 // 이전 버튼
-prevMonthBtn.onclick = ()=>{
+on(prevMonthBtn,'click', ()=>{
   if (currentView === 'week') {
-    activeDate.setMonth(activeDate.getMonth() - 1);   // ✅ 월 이동
+    activeDate.setMonth(activeDate.getMonth() - 1);
   } else if (currentView === 'day') {
     dayViewDate.setDate(dayViewDate.getDate() - 1);
     activeDate = new Date(dayViewDate.getFullYear(), dayViewDate.getMonth(), 1);
@@ -1822,11 +1868,12 @@ prevMonthBtn.onclick = ()=>{
     activeDate.setMonth(activeDate.getMonth() - 1);
   }
   renderCalendar();
-};
+});
 
-nextMonthBtn.onclick = ()=>{
+// 다음 버튼
+on(nextMonthBtn,'click', ()=>{
   if (currentView === 'week') {
-    activeDate.setMonth(activeDate.getMonth() + 1);   // ✅ 월 이동
+    activeDate.setMonth(activeDate.getMonth() + 1);
   } else if (currentView === 'day') {
     dayViewDate.setDate(dayViewDate.getDate() + 1);
     activeDate = new Date(dayViewDate.getFullYear(), dayViewDate.getMonth(), 1);
@@ -1834,7 +1881,8 @@ nextMonthBtn.onclick = ()=>{
     activeDate.setMonth(activeDate.getMonth() + 1);
   }
   renderCalendar();
-};
+});
+
 
 
 
@@ -2225,27 +2273,7 @@ nextMonthBtn.onclick = ()=>{
     await ensureNotificationPermission();
   })();
 
-  // ===============================
-// ✅ 칩 자동 축소 (셀 넘칠 때만)
-// ===============================
-function autoScaleDayLists(){
-  const cells = document.querySelectorAll('.calendar-grid .day-cell');
-  cells.forEach(cell=>{
-    const list = cell.querySelector('.day-list');
-    if(!list) return;
 
-    list.style.transform = '';
-    list.style.transformOrigin = 'top left';
-
-    const maxH = cell.clientHeight - 24; // 여백 감안
-    const curH = list.scrollHeight;
-
-    if(curH > maxH){
-      const scale = maxH / curH;
-      list.style.transform = `scale(${scale})`;
-    }
-  });
-}
 
 
   renderCalendar();
