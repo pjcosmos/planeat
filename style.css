@@ -1,15 +1,11 @@
-/* ===========================
-   PLANEAT - Pixel-Perfect Shell (non-intrusive)
-   - 앱/웹 1:1 스케일 고정 래퍼
-   - 다른 스타일/기능 침범 없음
-   =========================== */
+/* ===== 앱 화면 통짜 스케일 패치 ===== */
 :root{ --design-w:390; --design-h:844; }
 
 .app-scale{
   position:relative;
   width:100%; height:100vh;
   display:flex; align-items:center; justify-content:center;
-  background:#f6efe6; /* 필요시 배경컬러 조정 */
+  background:#f6efe6;
   overflow:hidden;
 }
 .app-viewport{
@@ -27,7 +23,7 @@
 html { -webkit-text-size-adjust:100%; }
 body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
 
-/* 썸네일 투명/블렌드 방지 (전역 안전 오버라이드) */
+/* 썸네일 투명/블렌드 방지 (이미 있으면 그대로 두기) */
 .planeat-skin .current-month .day-bg-underlay,
 .planeat-skin .current-month .day-bg-img{
   position:absolute !important; inset:0 !important;
@@ -686,7 +682,7 @@ textarea{ min-height:84px; resize:vertical; }
 .input:focus, input:focus, textarea:focus, select:focus{
   border-color:#d0d0d0; box-shadow:0 0 0 3px rgba(0,0,0,.04), 0 0 0 2px rgba(0,0,0,.02);
 }
-.m eno-categories{ display:flex; gap:8px; flex-wrap:wrap; }
+.meno-categories{ display:flex; gap:8px; flex-wrap:wrap; }
 .memo-categories .chip{
   padding:8px 12px; border-radius:999px; border:1px solid var(--mz-line); background:var(--mz-chip);
   font-weight:700; font-size:13px; color:#333; transition: transform .08s ease, box-shadow .15s ease, background .15s;
