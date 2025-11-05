@@ -49,19 +49,23 @@
   
 
   function pushUsersRemote(users) {
-    if (!SYNC_URL) return;
-    // fire-and-forget: 화면 블로킹 없이 비동기 전송
-    try {
-      navigator.sendBeacon?.(SYNC_URL, new Blob([JSON.stringify({
-        action:'setUsers', users, token: SYNC_TOKEN
-      })], { type:'application/json' })) ||
-      fetch(SYNC_URL, {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json' },
-        body: JSON.stringify({ action:'setUsers', users, token: SYNC_TOKEN })
-      }).catch(()=>{});
-    } catch {}
-  }
+  if (!SYNC_URL) return;
+  try {
+    // 1) sendBeacon 시도 (응답은 안 읽음)
+    const payload = JSON.stringify({ action: 'setUsers', users, token: SYNC_TOKEN });
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(SYNC_URL, new Blob([payload], { type: 'text/plain' }));
+    }
+
+    // 2) 폼 전송 fallback (preflight 회피)
+    const form = new URLSearchParams();
+    form.set('action', 'setUsers');
+    form.set('token', SYNC_TOKEN);
+    form.set('users', JSON.stringify(users));
+    fetch(SYNC_URL, { method: 'POST', body: form }).catch(()=>{});
+  } catch {}
+}
+
 
   // ====== Validation ======
   function validateId(id) {
