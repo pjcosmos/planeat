@@ -1,144 +1,131 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <!-- 모바일/앱 화면 맞춤 -->
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-  <meta name="format-detection" content="telephone=no">
-
-  <meta charset="utf-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>PLANEAT</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- ✅ 화면 통짜 스케일 래퍼 -->
-  <div class="app-scale">
-    <!-- ✅ 네가 만든 원래 화면을 '기준 크기'로 감싼 컨테이너 -->
-    <div id="app" class="app-viewport">
-
-      <!-- ======== 기존 내용 시작 (달력 UI 그대로) ======== -->
-      <div class="calendar-container">
-        <!-- 상단 로그인 상태바 -->
-        <div class="auth-bar">
-          <span id="authStatus" class="muted">로그인 상태 확인중…</span>
-          <div class="auth-actions">
-            <button id="logoutBtn" type="button">로그아웃</button>
-          </div>
-        </div>
-
-        <!-- 헤더 -->
-        <div class="calendar-header">
-          <button id="prevMonth" type="button" aria-label="이전 달">&lt;</button>
-          <h2 id="currentMonthYear"></h2>
-          <button id="nextMonth" type="button" aria-label="다음 달">&gt;</button>
-        </div>
-
-        <!-- 컨트롤 -->
-        <div class="calendar-controls">
-          <button id="monthView" class="active" type="button">월</button>
-          <button id="weekView" type="button">주</button>
-          <button id="highlightView" type="button">일</button>
-          <button id="todayBtn" type="button" title="오늘로 이동">Today</button>
-
-          <!-- 검색 (인라인) -->
-          <button id="searchBtn" type="button" class="icon-btn soft" title="식당 검색" aria-label="식당 검색">🔎</button>
-          <div id="searchPanel" class="search-panel" aria-hidden="true">
-            <input id="searchInput" type="text" placeholder="식당명 검색…" />
-            <div id="searchResults" class="search-results"></div>
-          </div>
-        </div>
-
-        <!-- 버킷리스트 패널 -->
-        <div id="bucketPanel"></div>
-
-        <!-- 월/주 전용 퀵바 -->
-        <div id="quickTodoBar" class="quick-todo-bar"></div>
-
-        <!-- 주차 선택 -->
-        <div id="weekOptions" class="week-options"></div>
-
-        <!-- 캘린더 그리드 -->
-        <div id="calendarGrid" class="calendar-grid"></div>
+  <div class="calendar-container">
+    <!-- 상단 로그인 상태바 -->
+    <div class="auth-bar">
+      <span id="authStatus" class="muted">로그인 상태 확인중…</span>
+      <div class="auth-actions">
+        <button id="logoutBtn" type="button">로그아웃</button>
       </div>
+    </div>
 
-      <!-- 모달 -->
-      <div id="eventModal" class="modal" aria-hidden="true">
-        <div class="modal-content">
-          <button class="close-button" type="button">닫기</button>
-          <h3 id="modalDate" style="margin-top:0;"></h3>
+    <!-- 헤더 -->
+    <div class="calendar-header">
+      <button id="prevMonth" type="button" aria-label="이전 달">&lt;</button>
+      <h2 id="currentMonthYear"></h2>
+      <button id="nextMonth" type="button" aria-label="다음 달">&gt;</button>
+    </div>
 
-          <!-- 메모 섹션 -->
-          <button id="memoToggle" class="toggle-header" type="button" data-target="memoForm" aria-expanded="false">
-            <span class="toggle-title">메모</span>
-          </button>
-          <div id="memoForm" class="toggle-content open">
-            <div class="memo-stack">
-              <div class="grid-2">
-                <div class="memo-categories">
-                  <button class="chip" data-category="morning" type="button">아침</button>
-                  <button class="chip" data-category="lunch"   type="button">점심</button>
-                  <button class="chip" data-category="dinner"  type="button">저녁</button>
-                  <button class="chip" data-category="cafe"    type="button">카페</button>
-                </div>
-                <div class="photo-inline">
-                  <button id="photoIconBtn" type="button" class="chip">사진 선택</button>
-                  <input id="photoUpload" type="file"
-                        accept=".heic,.HEIC,image/heic,image/heif,image/jpeg"
-                        multiple />
-                </div>
-                <div id="photoThumbs" class="thumbs-wrap"></div>
-              </div>
+    <!-- 컨트롤 -->
+    <div class="calendar-controls">
+      <button id="monthView" class="active" type="button">월</button>
+      <button id="weekView" type="button">주</button>
+      <button id="highlightView" type="button">일</button>
+      <button id="todayBtn" type="button" title="오늘로 이동">Today</button>
 
-              <label class="sponsor-check">
-                <input id="sponsorCheckbox" type="checkbox" /> 협찬
-              </label>
+      <!-- 검색 (인라인) -->
+      <button id="searchBtn" type="button" class="icon-btn soft" title="식당 검색" aria-label="식당 검색">🔎</button>
+      <div id="searchPanel" class="search-panel" aria-hidden="true">
+        <input id="searchInput" type="text" placeholder="식당명 검색…" />
+        <div id="searchResults" class="search-results"></div>
+      </div>
+    </div>
+    <!-- 버킷리스트 패널이 붙을 자리 (없으면 자동 생성되니, 가능하면 넣어두기) -->
+<div id="bucketPanel"></div>
 
-              <input id="restaurantName" type="text" placeholder="식당 이름" />
-              <textarea id="memoText" placeholder="메모 내용"></textarea>
 
-              <div class="actions">
-                <button id="addMemoBtn" class="btn primary" type="button">메모 추가</button>
-              </div>
+    <!-- 월/주 전용 퀵바 -->
+    <div id="quickTodoBar" class="quick-todo-bar"></div>
+
+    <!-- 주차 선택 -->
+    <div id="weekOptions" class="week-options"></div>
+
+    <!-- 캘린더 그리드 -->
+    <div id="calendarGrid" class="calendar-grid"></div>
+  </div>
+
+  <!-- 모달 -->
+  <div id="eventModal" class="modal" aria-hidden="true">
+    <div class="modal-content">
+      <button class="close-button" type="button">닫기</button>
+      <h3 id="modalDate" style="margin-top:0;"></h3>
+
+      <!-- 메모 섹션 -->
+      <button id="memoToggle" class="toggle-header" type="button" data-target="memoForm" aria-expanded="false">
+        <span class="toggle-title">메모</span>
+      </button>
+      <div id="memoForm" class="toggle-content open">
+        <div class="memo-stack">
+          <div class="grid-2">
+            <div class="memo-categories">
+              <button class="chip" data-category="morning" type="button">아침</button>
+              <button class="chip" data-category="lunch"   type="button">점심</button>
+              <button class="chip" data-category="dinner"  type="button">저녁</button>
+              <button class="chip" data-category="cafe"    type="button">카페</button>
             </div>
+            <div class="photo-inline">
+              <button id="photoIconBtn" type="button" class="chip">사진 선택</button>
+              <input id="photoUpload" type="file"
+                     accept=".heic,.HEIC,image/heic,image/heif,image/jpeg"
+                     multiple />
+            </div>
+            <div id="photoThumbs" class="thumbs-wrap"></div>
           </div>
 
-          <!-- 할 일 섹션 -->
-          <button id="todoToggle" class="toggle-header" type="button" data-target="todoForm" aria-expanded="false">
-            <span class="toggle-title">할 일</span>
-          </button>
-          <div id="todoForm" class="toggle-content">
-            <div class="todo-row">
-              <input id="todoInput" type="text" placeholder="할 일을 입력" />
-              <div class="time-inline">
-                <button id="todoTimeBtn" class="btn" type="button">시간</button>
-                <span id="todoTimeDisplay" class="time-display"></span>
-                <div id="timePopover" class="time-popover" aria-hidden="true">
-                  <input id="todoTimePopup" type="time" />
-                </div>
-              </div>
-              <select id="todoPlatform" class="platform-select" aria-label="플랫폼">
-                <option value="">플랫폼 선택</option>
-                <option value="블로그">블로그</option>
-                <option value="인스타">인스타</option>
-                <option value="유튜브">유튜브</option>
-              </select>
-              <button id="addTodoBtn" class="btn primary" type="button">추가</button>
-            </div>
-          </div>
+          <label class="sponsor-check">
+            <input id="sponsorCheckbox" type="checkbox" /> 협찬
+          </label>
 
-          <div class="saved-columns" style="margin-top:14px;">
-            <div class="saved-col">
-              <h4>메모</h4>
-              <div id="savedMemos" class="stack"></div>
-            </div>
-            <div class="saved-col">
-              <h4>할 일</h4>
-              <ul id="savedTodos" class="list-plain stack"></ul>
-            </div>
+          <input id="restaurantName" type="text" placeholder="식당 이름" />
+          <textarea id="memoText" placeholder="메모 내용"></textarea>
+
+          <div class="actions">
+            <button id="addMemoBtn" class="btn primary" type="button">메모 추가</button>
           </div>
         </div>
       </div>
-      <!-- ======== 기존 내용 끝 ======== -->
 
+      <!-- 할 일 섹션 -->
+      <button id="todoToggle" class="toggle-header" type="button" data-target="todoForm" aria-expanded="false">
+        <span class="toggle-title">할 일</span>
+      </button>
+      <div id="todoForm" class="toggle-content">
+        <div class="todo-row">
+          <input id="todoInput" type="text" placeholder="할 일을 입력" />
+          <div class="time-inline">
+            <button id="todoTimeBtn" class="btn" type="button">시간</button>
+            <span id="todoTimeDisplay" class="time-display"></span>
+            <div id="timePopover" class="time-popover" aria-hidden="true">
+              <input id="todoTimePopup" type="time" />
+            </div>
+          </div>
+          <select id="todoPlatform" class="platform-select" aria-label="플랫폼">
+            <option value="">플랫폼 선택</option>
+            <option value="블로그">블로그</option>
+            <option value="인스타">인스타</option>
+            <option value="유튜브">유튜브</option>
+          </select>
+          <button id="addTodoBtn" class="btn primary" type="button">추가</button>
+        </div>
+      </div>
+
+      <div class="saved-columns" style="margin-top:14px;">
+        <div class="saved-col">
+          <h4>메모</h4>
+          <div id="savedMemos" class="stack"></div>
+        </div>
+        <div class="saved-col">
+          <h4>할 일</h4>
+          <ul id="savedTodos" class="list-plain stack"></ul>
+        </div>
+      </div>
     </div>
   </div>
 
