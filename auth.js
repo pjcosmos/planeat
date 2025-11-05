@@ -1,15 +1,22 @@
-// auth.js — 로컬스토리지 기반 초간단 계정/세션 관리 (요청 반영: 아이디+실명으로 비번 재설정)
-// 기존 인터페이스 유지 + resetPasswordByIdName 추가
+// auth.js — 로컬스토리지 기반 + (옵션) 원격 동기화 추가
+// API 시그니처/동작 동일: getProfile/login/logout/signup/resetPassword* 그대로 사용 가능
+// ★ 설정만 하면 기기간 동기화 됨 (Google Apps Script 웹앱 등)
 
 (function (global) {
-  const USER_KEY = 'planeat_users_v1';
-  const SESSION_KEY = 'planeat_session_v1';
+  // ====== [설정] 원격 동기화 엔드포인트 (없으면 로컬만 동작) ======
+  const SYNC_URL   = 'https://script.google.com/macros/s/AKfycbyDeFYLmiAh3Z_h0dJ8oGGZvjQyXAq3uq-C0qAy_VRGJ752NoqFKseIYP9mHRZS1T3Q/exec'; // 예: https://script.google.com/macros/s/AKfycb.../exec
+  const SYNC_TOKEN = 'mGZ7f6E2_1r7yQ9hJpKz3sWc8VbDnLx0tUeR4iYo'; // Code.gs의 SERVER_TOKEN과 동일하게
 
-  const readUsers = () => {
+  const USER_KEY    = 'planeat_users_v1';
+  const SESSION_KEY = 'planeat_session_v1';
+  const SYNC_FLAG   = 'planeat_users_synced_v1'; // 최초 1회 pull 여부 표시
+
+  // ====== Local helpers ======
+  const readUsersLocal = () => {
     try { return JSON.parse(localStorage.getItem(USER_KEY)) || {}; }
     catch { return {}; }
   };
-  const writeUsers = (users) => {
+  const writeUsersLocal = (users) => {
     localStorage.setItem(USER_KEY, JSON.stringify(users || {}));
   };
 
@@ -22,7 +29,41 @@
     else localStorage.removeItem(SESSION_KEY);
   };
 
-  // 간단 검증
+  // ====== Remote helpers ======
+  async function pullUsersRemoteOnce() {
+    if (!SYNC_URL) return;
+    if (localStorage.getItem(SYNC_FLAG) === '1') return;
+  
+    try {
+      const res = await fetch(`${SYNC_URL}?action=getUsers&token=${SYNC_TOKEN}`, { method:'GET' });
+      if (!res.ok) throw new Error('pull failed');
+      const remoteUsers = await res.json();
+      const localUsers = readUsersLocal();
+      const merged = { ...localUsers, ...remoteUsers };
+      writeUsersLocal(merged);
+      localStorage.setItem(SYNC_FLAG, '1');
+    } catch (e) {
+      // 로컬만 사용해도 앱은 정상 동작
+    }
+  }
+  
+
+  function pushUsersRemote(users) {
+    if (!SYNC_URL) return;
+    // fire-and-forget: 화면 블로킹 없이 비동기 전송
+    try {
+      navigator.sendBeacon?.(SYNC_URL, new Blob([JSON.stringify({
+        action:'setUsers', users, token: SYNC_TOKEN
+      })], { type:'application/json' })) ||
+      fetch(SYNC_URL, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ action:'setUsers', users, token: SYNC_TOKEN })
+      }).catch(()=>{});
+    } catch {}
+  }
+
+  // ====== Validation ======
   function validateId(id) {
     if (!id || !/^[A-Za-z0-9_\-\.]{3,32}$/.test(id)) {
       return { ok:false, msg:'아이디는 3~32자의 영문/숫자/._- 만 허용' };
@@ -34,21 +75,25 @@
     return { ok:true };
   }
 
+  // ====== Public API (동기 인터페이스 유지) ======
   const api = {
-    // 현재 로그인한 프로필 반환(비번 제외)
+    // 앱 시작 시 1회 원격 → 로컬 머지 (호출 안해도 즉시 실행 아래에서 자동 호출)
+    async initSyncOnce() {
+      await pullUsersRemoteOnce();
+    },
+
     getProfile() {
       const id = getSessionId();
       if (!id) return null;
-      const users = readUsers();
+      const users = readUsersLocal();
       const u = users[id];
       if (!u) { setSessionId(null); return null; }
       const { password, ...safe } = u;
       return safe;
     },
 
-    // 로그인
     login(id, password) {
-      const users = readUsers();
+      const users = readUsersLocal();
       const u = users[id];
       if (!u) return false;
       if (u.password !== String(password)) return false;
@@ -56,13 +101,11 @@
       return true;
     },
 
-    // 로그아웃
     logout() {
       setSessionId(null);
       return true;
     },
 
-    // 회원가입
     signup({ id, password, realName = '', nickname = '', memo = '' }) {
       id = (id || '').trim();
       password = String(password || '');
@@ -70,18 +113,18 @@
       const v1 = validateId(id); if (!v1.ok) return { success:false, message: v1.msg };
       const v2 = validatePw(password); if (!v2.ok) return { success:false, message: v2.msg };
 
-      const users = readUsers();
+      const users = readUsersLocal();
       if (users[id]) return { success:false, message:'이미 존재하는 아이디입니다.' };
 
       users[id] = { id, password, realName: realName.trim(), nickname: nickname.trim(), memo: memo.trim(), createdAt: Date.now() };
-      writeUsers(users);
+      writeUsersLocal(users);
+      pushUsersRemote(users); // ← 원격에도 반영
       return { success:true };
     },
 
-    // (기존) 별명+이름+메모 일치 시 비번 재설정
     resetPasswordByHints({ nickname, realName, memo, newPassword }) {
       const v2 = validatePw(newPassword); if (!v2.ok) return { success:false, message: v2.msg };
-      const users = readUsers();
+      const users = readUsersLocal();
       const ids = Object.keys(users);
       const foundId = ids.find(id => {
         const u = users[id];
@@ -91,24 +134,25 @@
       });
       if (!foundId) return { success:false, message:'일치하는 사용자를 찾을 수 없습니다.' };
       users[foundId].password = String(newPassword);
-      writeUsers(users);
+      writeUsersLocal(users);
+      pushUsersRemote(users); // ← 원격에도 반영
       return { success:true };
     },
 
-    // (추가) 요청 반영: 아이디 + 실명으로 비밀번호 재설정
     resetPasswordByIdName({ id, realName, newPassword }) {
       id = (id || '').trim();
       realName = (realName || '').trim();
       const v2 = validatePw(newPassword); if (!v2.ok) return { success:false, message: v2.msg };
 
-      const users = readUsers();
+      const users = readUsersLocal();
       const u = users[id];
       if (!u) return { success:false, message:'존재하지 않는 아이디입니다.' };
       if (String(u.realName || '') !== realName) {
         return { success:false, message:'실명이 일치하지 않습니다.' };
       }
       u.password = String(newPassword);
-      writeUsers(users);
+      writeUsersLocal(users);
+      pushUsersRemote(users); // ← 원격에도 반영
       return { success:true };
     }
   };
@@ -116,4 +160,8 @@
   global.auth = api;
   if (typeof window !== 'undefined') window.auth = api;
 
+  // 페이지 로드되면 즉시 1회 동기화 시도 (호출부 수정 불필요)
+  (async ()=>{ await api.initSyncOnce(); })();
+
 })(typeof globalThis !== 'undefined' ? globalThis : window);
+
