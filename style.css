@@ -1,8 +1,29 @@
-/* ===========================
-   PLANEAT - Polish v2 (Design-only)
-   - 더 얇고 고급스러운 라인, 글래스/빛 번짐, 타이포 강화
-   - 기능 변경 없음
-   =========================== */
+/* ===== 앱 화면 통짜 스케일 패치 ===== */
+:root{ --design-w: 390; --design-h: 844; }
+html, body { margin:0; padding:0; height:100%; }
+html { -webkit-text-size-adjust:100%; }
+body { background:#fff; overflow:hidden; }
+.app-scale{
+  position: fixed;
+  inset: env(safe-area-inset-top,0) env(safe-area-inset-right,0)
+         env(safe-area-inset-bottom,0) env(safe-area-inset-left,0);
+  display:flex; align-items:center; justify-content:center;
+}
+.app-viewport{
+  width: calc(var(--design-w) * 1px);
+  height: calc(var(--design-h) * 1px);
+  transform-origin: top left;
+  --scale-x: calc(100dvw / (var(--design-w) * 1px));
+  --scale-y: calc(100dvh / (var(--design-h) * 1px));
+  --scale: min(var(--scale-x), var(--scale-y));
+  transform: scale(var(--scale));
+  overflow:auto;
+  overscroll-behavior: contain;
+  padding-top: env(safe-area-inset-top,0);
+  padding-bottom: env(safe-area-inset-bottom,0);
+}
+/* 필요하면 좌상단 정렬:
+.app-scale{ align-items:flex-start; justify-content:flex-start; } */
 
    @import url("https://cdn.jsdelivr.net/npm/pretendard/dist/web/static/pretendard.css");
 
