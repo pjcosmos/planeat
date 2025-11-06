@@ -524,6 +524,8 @@ const todoTimeDisplay = $('#todoTimeDisplay');
 
 /* ===== 모달 ===== */
 function openModal(date) {
+   if (typeof closeSearchPanel === 'function') closeSearchPanel();
+
   if (!eventModal || !modalDate) return;
   selectedDate = new Date(date);
   modalDate.textContent = selectedDate.toLocaleDateString('ko-KR', {year:'numeric', month:'long', day:'numeric', weekday:'long'});
@@ -546,6 +548,44 @@ function closeModal() {
 on(closeBtn,'click',closeModal);
 on(document,'keydown',(e)=>{ if(e.key==='Escape') closeModal(); });
 on(eventModal,'click',(e)=>{ if(e.target===eventModal) closeModal(); });
+
+if (!document.getElementById('modal-z-fix')) {
+  const st = document.createElement('style');
+  st.id = 'modal-z-fix';
+  st.textContent = `
+    /* 모달이 검색 패널보다 위 */
+    #eventModal { z-index: 100000 !important; }
+
+    /* 모달 열렸을 땐 검색 패널 비활성 (겹침 클릭 차단) */
+    body.modal-open #searchPanel {
+      display: none !important;
+      pointer-events: none !important;
+    }
+  `;
+  document.head.appendChild(st);
+}
+
+// 썸네일 컨테이너 스타일(초기화 시 1회 주입)
+if (!document.getElementById('thumbs-fix-style')) {
+  const st = document.createElement('style');
+  st.id = 'thumbs-fix-style';
+  st.textContent = `
+    #photoThumbs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      position: relative;
+      z-index: 1;
+    }
+    #photoThumbs .thumb-choice {
+      position: relative;
+      z-index: 2;
+      pointer-events: auto;
+    }
+  `;
+  document.head.appendChild(st);
+}
+
 
 /* ===== 저장 목록 렌더 ===== */
 function renderSaved() {
