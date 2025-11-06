@@ -837,3 +837,32 @@
   max-height: none !important;     /* 이전 제한 해제 */
   height: 100% !important;         /* 셀 전체 채우기 */
 }
+
+/* ✅ 썸네일을 모두 오버레이보다 위로 */
+#eventModal .modal-content { position: relative; }
+#photoThumbs { position: relative; z-index: 10010 !important; }
+#photoThumbs .thumb-choice { 
+  position: relative; 
+  z-index: 10011 !important; 
+  pointer-events: auto !important;
+}
+
+/* ✅ 모달 열렸을 때 검색·시간 팝업은 클릭 차단 */
+body.modal-open #searchPanel,
+body.modal-open #timePopover {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+/* ✅ 배경 이미지가 클릭을 가로채지 않도록 */
+.day-bg-img, .day-bg-underlay { pointer-events: none !important; }
+
+/* ✅ 파일 입력이 화면을 덮지 않도록 완전 숨김 */
+#photoUpload,
+.file-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
