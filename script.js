@@ -1716,6 +1716,23 @@ async function ensureNotificationPermission(force=false) {
   renderCalendar();
 })();
 
+// ==== [HOTFIX] 썸네일 별표/이미지 커서 강제 ====
+if (!document.getElementById('thumb-cursor-fix')) {
+  const st = document.createElement('style');
+  st.id = 'thumb-cursor-fix';
+  st.textContent = `
+    /* 썸네일 전역: 텍스트 선택/줄바꿈 방지 */
+    #photoThumbs { user-select: none; -webkit-user-select: none; }
+    #photoThumbs .thumb-choice { cursor: pointer; }
+    #photoThumbs .thumb-choice * { cursor: inherit; }
+    #photoThumbs .thumb-choice span { display: inline-block; } /* ☆/★ 뱃지 */
+    /* 혹시 겹치는 오버레이가 있어도 포인터 유지 */
+    #photoThumbs .thumb-choice::after { pointer-events: none; }
+  `;
+  document.head.appendChild(st);
+}
+
+
 /* ===== 메모 사진 버튼 연결(안전망) ===== */
 const btn = document.getElementById('memoPhotoBtn');
 const inp = document.getElementById('memoPhoto');
