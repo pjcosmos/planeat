@@ -866,3 +866,14 @@ body.modal-open #timePopover {
   opacity: 0 !important;
   pointer-events: none !important;
 }
+
+/* 썸네일 영역은 텍스트 편집/선택 금지 + 손모양 커서 고정 */
+#photoThumbs{
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  cursor: default !important;
+}
+#photoThumbs .thumb-choice,
+#photoThumbs .thumb-choice *{
+  cursor: pointer !important;
+}
